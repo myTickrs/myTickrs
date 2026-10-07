@@ -1,0 +1,17 @@
+{
+  "name": "@tickrs/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tickrs/shared": "0.1.0",
+    "decimal.js": "^10.6.0"
+  },
+  "devDependencies": {
+    "fast-check": "^4.10.2"
+  }
+}

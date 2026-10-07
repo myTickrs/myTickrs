@@ -1,0 +1,24 @@
+{
+  "name": "@tickrs/store-sql",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The desktop edition's storage: the port implemented with Kysely over SQLite.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*.js": "./src/*.ts"
+  },
+  "dependencies": {
+    "@tickrs/server": "0.1.0",
+    "@tickrs/core": "0.1.0",
+    "@tickrs/market-data": "0.1.0",
+    "@tickrs/shared": "0.1.0",
+    "better-sqlite3": "^13.0.3",
+    "kysely": "^0.29.6",
+    "uuid": "^14.0.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@tickrs/conformance": "0.1.0"
+  }
+}

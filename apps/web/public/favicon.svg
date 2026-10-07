@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <style>
+    .ink { stroke: #1b1b1a; }
+    .line { stroke: #17855a; }
+    .dot { fill: #17855a; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #ececea; }
+      .line { stroke: #34c28a; }
+      .dot { fill: #34c28a; }
+    }
+  </style>
+  <circle class="ink" cx="21" cy="21" r="14" fill="none" stroke-width="3.5"/>
+  <line class="ink" x1="31.5" y1="31.5" x2="41" y2="41" stroke-width="5.5" stroke-linecap="round"/>
+  <polyline class="line" points="13,26 18,21 22,24 28,16" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle class="dot" cx="28" cy="16" r="2.8"/>
+</svg>

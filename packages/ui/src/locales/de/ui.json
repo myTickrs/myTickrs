@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "Zum hellen Design wechseln",
+    "switchToDark": "Zum dunklen Design wechseln",
+    "contact": "Kontakt",
+    "language": "Sprache"
+  },
+  "common": {
+    "close": "Schließen",
+    "loading": "Wird geladen",
+    "nothingYet": "Noch nichts anzuzeigen."
+  },
+  "table": {
+    "expandAll": "Alle ausklappen",
+    "collapseAll": "Alle einklappen"
+  },
+  "chart": {
+    "drawing": "Diagramm wird gezeichnet",
+    "viewAsChart": "Als Diagramm anzeigen",
+    "viewAsTable": "Als Tabelle anzeigen",
+    "nothingToChart": "Noch nichts darzustellen.",
+    "noDataForRange": "Für diesen Zeitraum liegen noch keine Daten vor.",
+    "period": "Zeitraum",
+    "amount": "Betrag",
+    "realized": "Realisiert",
+    "date": "Datum",
+    "series": "Reihe",
+    "value": "Wert"
+  }
+}

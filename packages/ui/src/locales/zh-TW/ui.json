@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "切換到淺色主題",
+    "switchToDark": "切換到深色主題",
+    "contact": "聯絡我們",
+    "language": "語言"
+  },
+  "common": {
+    "close": "關閉",
+    "loading": "載入中",
+    "nothingYet": "尚無內容。"
+  },
+  "table": {
+    "expandAll": "全部展開",
+    "collapseAll": "全部收合"
+  },
+  "chart": {
+    "drawing": "正在繪製圖表",
+    "viewAsChart": "以圖表檢視",
+    "viewAsTable": "以表格檢視",
+    "nothingToChart": "尚無可繪製的資料。",
+    "noDataForRange": "此期間尚無資料。",
+    "period": "期間",
+    "amount": "金額",
+    "realized": "已實現",
+    "date": "日期",
+    "series": "系列",
+    "value": "數值"
+  }
+}

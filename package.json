@@ -1,0 +1,44 @@
+{
+  "name": "mytickrs",
+  "version": "0.1.8",
+  "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myTickrs/myTickrs.git"
+  },
+  "homepage": "https://github.com/myTickrs/myTickrs#readme",
+  "bugs": "https://github.com/myTickrs/myTickrs/issues",
+  "type": "module",
+  "description": "Track stock, option and cash transactions with holdings, P&L and performance charts.",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/core",
+    "packages/market-data",
+    "packages/ui",
+    "packages/server",
+    "packages/conformance",
+    "packages/store-sql",
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev -w @tickrs/api\" \"npm run dev -w @tickrs/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run build && cross-env NODE_ENV=production npm run start -w @tickrs/api -- --open"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.29.9",
+    "@types/node": "^24.0.0",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "oxlint": "^1.83.0",
+    "prettier": "^3.9.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

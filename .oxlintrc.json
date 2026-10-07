@@ -1,0 +1,124 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import", "react", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": ["**/dist/**", "**/coverage/**", "data/**"],
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    "import/no-cycle": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": [
+      "warn",
+      {
+        "allow": ["**/*.css"]
+      }
+    ],
+    "oxc/no-async-endpoint-handlers": "off"
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/**"],
+      "env": {
+        "browser": true
+      }
+    },
+    {
+      "files": ["packages/core/src/**", "apps/api/src/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "parseFloat",
+            "message": "Money/quantities must not use JS floating point. Use decimal.js helpers from @tickrs/core."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/test/**", "**/*.test.ts"],
+      "rules": {
+        "vitest/require-to-throw-message": "off",
+        "vitest/expect-expect": ["error", { "assertFunctionNames": ["expect", "api.request.**.expect"] }]
+      }
+    },
+    {
+      "files": ["apps/web/src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@(mui|emotion)/",
+                "message": "Import UI primitives from @tickrs/ui (our wrappers), never from Material UI directly (AGENT.md \"UI components\")."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/ui/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["packages/server/src/services/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "/repositories/",
+                "message": "Services reach storage through the port (ctx.data / ctx.store), never a repository (AGENT.md, docs/EDITIONS.md \u00a74.2). A missing port method is the fix."
+              },
+              {
+                "regex": "^kysely$",
+                "message": "Services must not know the database is Kysely. Use the port's row types from ../store/ports.js."
+              },
+              {
+                "regex": "/db/index",
+                "message": "Services never hold a database handle; use ctx.data or ctx.store."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/server/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@tickrs/store-sql",
+                "message": "The server is edition-independent: it knows the storage port, never an implementation. The composition root (apps/api) wires in the store."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

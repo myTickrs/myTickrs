@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "Passer au thème clair",
+    "switchToDark": "Passer au thème sombre",
+    "contact": "Contact",
+    "language": "Langue"
+  },
+  "common": {
+    "close": "Fermer",
+    "loading": "Chargement",
+    "nothingYet": "Rien à afficher pour l’instant."
+  },
+  "table": {
+    "expandAll": "Tout développer",
+    "collapseAll": "Tout réduire"
+  },
+  "chart": {
+    "drawing": "Tracé du graphique",
+    "viewAsChart": "Voir en graphique",
+    "viewAsTable": "Voir en tableau",
+    "nothingToChart": "Rien à représenter pour l’instant.",
+    "noDataForRange": "Aucune donnée pour cette période.",
+    "period": "Période",
+    "amount": "Montant",
+    "realized": "Réalisé",
+    "date": "Date",
+    "series": "Série",
+    "value": "Valeur"
+  }
+}

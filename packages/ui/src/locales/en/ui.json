@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme",
+    "contact": "Contact",
+    "language": "Language"
+  },
+  "common": {
+    "close": "Close",
+    "loading": "Loading",
+    "nothingYet": "Nothing to show yet."
+  },
+  "table": {
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all"
+  },
+  "chart": {
+    "drawing": "Drawing the chart",
+    "viewAsChart": "View as chart",
+    "viewAsTable": "View as table",
+    "nothingToChart": "Nothing to chart yet.",
+    "noDataForRange": "No data for this range yet.",
+    "period": "Period",
+    "amount": "Amount",
+    "realized": "Realized",
+    "date": "Date",
+    "series": "Series",
+    "value": "Value"
+  }
+}

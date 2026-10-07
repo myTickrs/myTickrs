@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "ライトテーマに切り替え",
+    "switchToDark": "ダークテーマに切り替え",
+    "contact": "お問い合わせ",
+    "language": "言語"
+  },
+  "common": {
+    "close": "閉じる",
+    "loading": "読み込み中",
+    "nothingYet": "まだ表示するものがありません。"
+  },
+  "table": {
+    "expandAll": "すべて展開",
+    "collapseAll": "すべて折りたたむ"
+  },
+  "chart": {
+    "drawing": "チャートを描画中",
+    "viewAsChart": "チャートで表示",
+    "viewAsTable": "表で表示",
+    "nothingToChart": "まだグラフにするデータがありません。",
+    "noDataForRange": "この期間のデータはまだありません。",
+    "period": "期間",
+    "amount": "金額",
+    "realized": "実現損益",
+    "date": "日付",
+    "series": "系列",
+    "value": "値"
+  }
+}

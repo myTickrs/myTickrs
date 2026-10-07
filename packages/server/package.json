@@ -1,0 +1,28 @@
+{
+  "name": "@tickrs/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The edition-independent server: routes, services, the storage port. Knows no database.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*.js": "./src/*.ts"
+  },
+  "dependencies": {
+    "@tickrs/core": "0.1.0",
+    "@tickrs/market-data": "0.1.0",
+    "@tickrs/shared": "0.1.0",
+    "csv-parse": "^7.0.3",
+    "express": "^5.2.1",
+    "fast-xml-parser": "^5.11.2",
+    "helmet": "^8.3.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "uuid": "^14.0.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "kysely": "^0.29.6"
+  }
+}
