@@ -185,13 +185,19 @@ Numbers, dates and currencies are formatted for the language you choose. The app
 
 ## Getting started
 
+There are 3 ways to run the desktop app:
+
+1. [Install](#1-install) it with the installer for your system.
+2. [Run it with Docker](#2-run-with-docker).
+3. [Run it from source](#3-run-from-source).
+
 ### Requirements
 
 - Windows, macOS or Linux
-- **Node.js 24** or newer. The installer checks for it and, if it is missing or too old, asks
-  before installing it for you.
+- **Node.js 24** or newer for methods 1 and 3. The installer checks for it and, if it is missing or
+  too old, asks before installing it for you. Docker (method 2) needs nothing else.
 
-### Install
+### 1. Install
 
 Open a terminal and run the line for your system.
 
@@ -240,7 +246,64 @@ and your database (`data/`), your settings (`.env`) and any plugins you added ar
 **Uninstall:** stop the app, delete the install folder and the **myTickrs** shortcuts. This also
 deletes your database, so back up `data/` first if you want to keep it.
 
-### Run from source
+### 2. Run with Docker
+
+You can also run myTickrs in Docker, with nothing else installed on your computer. This works well
+on a home server or NAS too. The image is `files.mytickrs.app/mytickrs`, for x86-64 and ARM
+(including Apple silicon). Open a terminal and run the line for your system.
+
+**Windows** (PowerShell):
+
+```powershell
+irm https://files.mytickrs.app/install-docker.ps1 | iex
+```
+
+**macOS and Linux**:
+
+```bash
+curl -fsSL https://files.mytickrs.app/install-docker.sh | bash
+```
+
+The installer:
+
+1. Checks for Docker with Docker Compose v2. If they are not there, it asks for permission and then
+   installs them: Docker Desktop on Windows (with WSL 2, which needs a restart of Windows) and on
+   macOS (with Homebrew, or the disk image from docker.com), and Docker Engine from
+   [get.docker.com](https://get.docker.com) on Linux. It starts Docker if it is not running.
+2. Downloads [docker-compose.yml](https://files.mytickrs.app/docker-compose.yml) into a `mytickrs-docker` folder
+   in your home folder, then downloads the image and starts it. Set `MYTICKRS_DIR` before running it
+   to use another folder.
+3. Opens <http://localhost:5050> in your browser.
+
+The app then starts whenever Docker starts. Your database is kept in the Docker volume
+`mytickrs_data`. To run it without the installer, in an empty folder:
+
+```bash
+curl -fsSLO https://files.mytickrs.app/docker-compose.yml
+docker compose up -d
+```
+
+To change the port or reach the app from other computers, set these before running the installer,
+or put them in a `.env` file next to `docker-compose.yml`:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MYTICKRS_PORT` | `5050` | The port the app is on |
+| `MYTICKRS_BIND` | `127.0.0.1` | Use `0.0.0.0` to reach it from your network. Anyone who can reach the port can use the app |
+
+Other [settings](#configuration) go under `environment:` in `docker-compose.yml`.
+
+In the install folder:
+
+| To | Run |
+| --- | --- |
+| Stop or start it | `docker compose stop`, `docker compose start` |
+| Update it | the install line again, or `docker compose pull` then `docker compose up -d` |
+| Back up your data | `docker compose stop`, then `docker compose cp mytickrs:/app/data ./mytickrs-backup` |
+| See its log | `docker compose logs` |
+| Uninstall | `docker compose down -v`. This also deletes your database, so back it up first |
+
+### 3. Run from source
 
 To run the app from the source code instead (needs Node.js 24 or newer):
 
