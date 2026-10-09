@@ -12,7 +12,7 @@ import {
   useConfirmCloudSync,
   useStartCloudSync,
 } from '../lib/queries.js';
-import { openSignInTab } from '../lib/sign-in-tab.js';
+import { openSignInWindow } from '../lib/sign-in-window.js';
 
 const PROVIDER_NAMES: Record<SignInProvider, string> = { google: 'Google', microsoft: 'Microsoft' };
 
@@ -66,16 +66,16 @@ export function CloudSyncTab() {
   const signIn = (provider: SignInProvider) => {
     setChoosingProvider(false);
     setActionError(undefined);
-    const tab = openSignInTab();
+    const popup = openSignInWindow();
     start.mutate(
       { provider },
       {
         onSuccess: (started) => {
           setSessionId(started.id);
-          if (tab && started.authorizeUrl) tab.location.href = started.authorizeUrl;
+          if (popup && started.authorizeUrl) popup.location.href = started.authorizeUrl;
         },
         onError: (error) => {
-          tab?.close();
+          popup?.close();
           setActionError(errorText(error, t('sync.startFailed')));
         },
       },
@@ -310,7 +310,7 @@ function SessionStatus({ session, onCancel }: { session: CloudSyncSession; onCan
           action={
             <Row gap={1}>
               {session.authorizeUrl && (
-                <Button onClick={() => openSignInTab(session.authorizeUrl)}>{t('sync.openSignIn')}</Button>
+                <Button onClick={() => openSignInWindow(session.authorizeUrl)}>{t('sync.openSignIn')}</Button>
               )}
               <Button onClick={onCancel}>{t('common.cancel')}</Button>
             </Row>

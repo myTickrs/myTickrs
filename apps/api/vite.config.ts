@@ -8,13 +8,14 @@ const external = [
   ...Object.keys(pkg.dependencies).filter((d) => !d.startsWith('@tickrs/')),
 ];
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: {
     ssr: true,
     target: 'node24',
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true,
+    minify: mode === 'production',
+    sourcemap: mode !== 'production',
     rollupOptions: {
       input: { server: 'src/server.ts', 'migrate-cli': 'src/db/migrate-cli.ts' },
       external: (id) => external.some((e) => id === e || id.startsWith(`${e}/`)),
@@ -22,4 +23,4 @@ export default defineConfig({
     },
   },
   ssr: { noExternal: [/^@tickrs\//] },
-});
+}));

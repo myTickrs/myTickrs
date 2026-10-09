@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useT } from '../../i18n.js';
 import { errorText } from '../../lib/api.js';
 import { startImportSignIn, useImportSignOut } from '../../lib/queries.js';
-import { openSignInTab } from '../../lib/sign-in-tab.js';
+import { openSignInWindow } from '../../lib/sign-in-window.js';
 
 const PROVIDER_NAMES: Record<string, string> = { google: 'Google', microsoft: 'Microsoft' };
 
@@ -22,14 +22,14 @@ export function AiStatus({
 
   const signIn = async (provider: string) => {
     setError(null);
-    const tab = openSignInTab();
+    const popup = openSignInWindow();
     try {
       const { authorizeUrl } = await startImportSignIn(provider);
-      if (tab) tab.location.href = authorizeUrl;
+      if (popup) popup.location.href = authorizeUrl;
       setWaiting(true);
       onWaitingForSignIn(true);
     } catch (e) {
-      tab?.close();
+      popup?.close();
       setError(errorText(e, t('common.somethingWentWrong')));
     }
   };

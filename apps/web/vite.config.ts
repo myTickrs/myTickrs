@@ -14,6 +14,6 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: { '/api': `http://127.0.0.1:${apiPort}` },
     },
-    build: { outDir: 'dist', emptyOutDir: true, sourcemap: true },
+    build: { outDir: 'dist', emptyOutDir: true, sourcemap: mode !== 'production' },
   };
 });

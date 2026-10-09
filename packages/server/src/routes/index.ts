@@ -93,7 +93,7 @@ import {
   listTransactions,
   updateTransaction,
 } from '../services/transactions.js';
-import { CloudSync, isLoopback, syncCallbackPage } from '../services/cloud-sync.js';
+import { CloudSync, loopbackRedirectUri, syncCallbackPage } from '../services/cloud-sync.js';
 import { CALLBACK_PAGE_CSP } from '../services/oauth-native.js';
 import type { CloudSyncConfig } from '../server-config.js';
 import type { Logger } from 'pino';
@@ -300,7 +300,8 @@ export function apiRouter(
 
   api.post('/cloud-sync/sessions', (req, res) => {
     const sync = syncOf(req);
-    if (!isLoopback(req.socket.remoteAddress)) {
+    const redirectUri = loopbackRedirectUri(req.socket.remoteAddress, req.get('host'), req.socket.localPort);
+    if (!redirectUri) {
       throw new AppError(
         'SYNC_NEEDS_LOCAL_BROWSER',
         400,
@@ -308,7 +309,6 @@ export function apiRouter(
       );
     }
     const input = parse(startCloudSyncSchema, req.body);
-    const redirectUri = `http://127.0.0.1:${req.socket.localPort}/api/v1/cloud-sync/callback`;
     res.status(201).json(sync.start(ctxOf(req), input, redirectUri));
   });
 
@@ -385,7 +385,8 @@ export function apiRouter(
     requireFeature(ctxOf(req), 'ai-import');
     if (!importAi?.signIn)
       throw new AppError('IMPORT_UNAVAILABLE', 503, 'There is nothing to sign in to here');
-    if (!isLoopback(req.socket.remoteAddress)) {
+    const redirectUri = loopbackRedirectUri(req.socket.remoteAddress, req.get('host'), req.socket.localPort);
+    if (!redirectUri) {
       throw new AppError(
         'SYNC_NEEDS_LOCAL_BROWSER',
         400,
@@ -393,7 +394,6 @@ export function apiRouter(
       );
     }
     const { provider } = parse(aiSignInSchema, req.body);
-    const redirectUri = `http://127.0.0.1:${req.socket.localPort}/api/v1/cloud-sync/callback`;
     res.status(201).json(importAi.signIn.start(provider, redirectUri));
   });
 

@@ -442,6 +442,20 @@ export function isLoopback(address: string | undefined): boolean {
   return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
 }
 
+const loopbackCallback = (port: string | number | undefined) =>
+  `http://127.0.0.1:${port}/api/v1/cloud-sync/callback`;
+
+export function loopbackRedirectUri(
+  remoteAddress: string | undefined,
+  host: string | undefined,
+  localPort: number | undefined,
+): string | undefined {
+  const url = host ? URL.parse(`http://${host}`) : null;
+  if (isLoopback(remoteAddress)) return loopbackCallback(localPort);
+  if (url == null || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return undefined;
+  return loopbackCallback(url.port || 80);
+}
+
 export function syncCallbackPage(session: CloudSyncSession | undefined, failure?: string): string {
   const signedIn = session != null && session.status !== 'failed';
   return callbackPage(
