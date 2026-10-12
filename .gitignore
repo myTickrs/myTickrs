@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+data/
+logs/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+playwright-report/
+test-results/
+
+# Downloaded demo market data (npm run fetch:market-data)
+seed/market/
+
+# Data-provider plugin bundles, dropped in by the data-providers project (npm run deploy)
+/apps/plugins/
+mytickrs.zip

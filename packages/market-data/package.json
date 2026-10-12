@@ -1,0 +1,19 @@
+{
+  "name": "@tickrs/market-data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin/index.ts",
+    "./plugin/testing": "./src/plugin/testing.ts"
+  },
+  "dependencies": {
+    "@tickrs/core": "0.1.0",
+    "@tickrs/shared": "0.1.0"
+  },
+  "peerDependencies": {
+    "pino": "^10.3.1"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "shell": {
+    "switchToLight": "라이트 테마로 전환",
+    "switchToDark": "다크 테마로 전환",
+    "contact": "문의",
+    "language": "언어"
+  },
+  "common": {
+    "close": "닫기",
+    "loading": "불러오는 중",
+    "nothingYet": "아직 표시할 내용이 없습니다."
+  },
+  "table": {
+    "expandAll": "모두 펼치기",
+    "collapseAll": "모두 접기"
+  },
+  "chart": {
+    "drawing": "차트를 그리는 중",
+    "viewAsChart": "차트로 보기",
+    "viewAsTable": "표로 보기",
+    "nothingToChart": "아직 차트로 표시할 내용이 없습니다.",
+    "noDataForRange": "이 기간에는 아직 데이터가 없습니다.",
+    "period": "기간",
+    "amount": "금액",
+    "realized": "실현 손익",
+    "date": "날짜",
+    "series": "계열",
+    "value": "값"
+  }
+}
