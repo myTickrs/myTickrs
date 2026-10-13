@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+  Unraid Community Applications template for the myTickrs desktop edition.
+  Publish it from a public templates repo (e.g. github.com/myTickrs/unraid-templates) and submit
+  that repo to Community Applications. The container port must equal the host port: signing in to
+  the cloud for sync returns to the port the app listens on, so the WebUI Port and PORT match.
+-->
+<Container version="2">
+  <Name>myTickrs</Name>
+  <Repository>ghcr.io/mytickrs/mytickrs:latest</Repository>
+  <Registry>https://github.com/myTickrs/myTickrs/pkgs/container/mytickrs</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://forums.unraid.net/topic/XXXXX-support-mytickrs/</Support>
+  <Project>https://github.com/myTickrs/myTickrs</Project>
+  <Overview>myTickrs tracks your investment portfolio: lots, cost basis, profit and loss, and returns, with market data from built-in and plugin providers. Your data stays in a SQLite database in appdata, and can optionally sync with the myTickrs cloud.[br][br]Security: the self-hosted edition has no sign-in. Anyone who can reach the port can use the app, so do not expose it outside your network.[br][br]If you change the WebUI port, set PORT to the same number.</Overview>
+  <Category>Productivity: Tools:</Category>
+  <WebUI>http://[IP]:[PORT:5050]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/myTickrs/unraid-templates/main/mytickrs.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/myTickrs/unraid-templates/main/icons/mytickrs.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WebUI Port" Target="5050" Default="5050" Mode="tcp" Description="Port for the web interface. Keep it equal to PORT." Type="Port" Display="always" Required="true" Mask="false">5050</Config>
+  <Config Name="PORT" Target="PORT" Default="5050" Mode="" Description="Port the app listens on inside the container. Must equal the WebUI port." Type="Variable" Display="always" Required="true" Mask="false">5050</Config>
+  <Config Name="App Data" Target="/app/data" Default="/mnt/user/appdata/mytickrs" Mode="rw" Description="SQLite database and the key that encrypts stored provider keys. Back up the whole folder; keep the key with the database." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/mytickrs</Config>
+  <Config Name="Data-provider plugins" Target="/app/apps/plugins/dataproviders" Default="" Mode="rw" Description="Optional. Folder for extra data-provider plugins. Leave empty to use the plugins built into the image; a folder here replaces them." Type="Path" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the app runs as and that owns App Data. 99 is Unraid's nobody." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group the app runs as. 100 is Unraid's users." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="LOG_LEVEL" Target="LOG_LEVEL" Default="info" Mode="" Description="fatal, error, warn, info, debug, trace or silent." Type="Variable" Display="advanced" Required="false" Mask="false">info</Config>
+  <Config Name="KEY_ENCRYPTION_KEY" Target="KEY_ENCRYPTION_KEY" Default="" Mode="" Description="Optional. Base64 of 32 bytes that encrypts stored provider keys. If empty, one is generated and saved in App Data." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="TZ" Target="TZ" Default="" Mode="" Description="Optional time zone, e.g. America/New_York." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+</Container>
