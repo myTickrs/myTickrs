@@ -31,6 +31,7 @@ import { AccountDialog, accountNameFor, type AccountValues } from '../features/A
 import { t as translate, useT } from '../i18n.js';
 import { ApiError, errorText, type Account } from '../lib/api.js';
 import { prepareFile } from '../lib/prepare-file.js';
+import { randomUuid } from '../lib/uuid.js';
 import {
   addAccounts,
   checkImport,
@@ -92,7 +93,7 @@ export function ImportPage() {
   const [result, setResult] = useState<{ imported: number } | null>(null);
   const [pending, setPending] = useState<(() => void) | null>(null);
   const importIds = useRef<Record<string, string>>({});
-  const importIdFor = (id: string) => (importIds.current[id] ??= crypto.randomUUID());
+  const importIdFor = (id: string) => (importIds.current[id] ??= randomUuid());
 
   const ai = config.data?.ai;
   const aiFilesLeft =
@@ -143,7 +144,7 @@ export function ImportPage() {
     const maxLongEdge = ai?.status === 'ready' ? ai.maxLongEdge : IMPORT_DEFAULT_MAX_LONG_EDGE;
     const entries: { entry: FileEntry; picked: PickedFile }[] = picked.map((p) => ({
       picked: p,
-      entry: { key: crypto.randomUUID(), name: p.name, kind: null, status: 'reading', rows: [] },
+      entry: { key: randomUuid(), name: p.name, kind: null, status: 'reading', rows: [] },
     }));
     dispatch({ type: 'addFiles', files: entries.map((e) => e.entry) });
 
