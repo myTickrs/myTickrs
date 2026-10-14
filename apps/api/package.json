@@ -1,6 +1,6 @@
 {
   "name": "@tickrs/api",
-  "version": "0.1.12",
+  "version": "0.1.32",
   "private": true,
   "type": "module",
   "scripts": {

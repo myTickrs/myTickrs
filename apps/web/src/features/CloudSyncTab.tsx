@@ -1,7 +1,7 @@
 import type { CloudSyncSession, SignInProvider, SyncComparison, SyncDirection } from '@tickrs/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Badge, Banner, Button, Card, Col, Dialog, Row, Spinner, Text } from '@tickrs/ui';
+import { Badge, Banner, Button, Card, Col, Dialog, ProviderButton, Row, Spinner, Text } from '@tickrs/ui';
 import { t as translate, useT } from '../i18n.js';
 import { errorText, serverText } from '../lib/api.js';
 import { describeCounts, formatDateTime } from '../lib/format.js';
@@ -156,13 +156,13 @@ export function CloudSyncTab() {
       <Dialog open={choosingProvider} title={t('sync.check')} onClose={() => setChoosingProvider(false)}>
         <Col gap={2}>
           <Text>{t('sync.signInToContinue')}</Text>
-          <Row gap={1} justify="end" wrap>
+          {providers.map((provider) => (
+            <ProviderButton key={provider} provider={provider} onClick={() => signIn(provider)}>
+              {t('sync.continueWith', { provider: PROVIDER_NAMES[provider] })}
+            </ProviderButton>
+          ))}
+          <Row justify="end">
             <Button onClick={() => setChoosingProvider(false)}>{t('common.cancel')}</Button>
-            {providers.map((provider) => (
-              <Button key={provider} variant="primary" onClick={() => signIn(provider)}>
-                {t('sync.continueWith', { provider: PROVIDER_NAMES[provider] })}
-              </Button>
-            ))}
           </Row>
         </Col>
       </Dialog>

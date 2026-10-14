@@ -11,13 +11,23 @@ import { type CtxOf, parse, queryText } from '../http.js';
 import { requireFeature } from '../identity.js';
 import type { ImportAi } from '../import/ai.js';
 import type { CloudSyncConfig } from '../server-config.js';
-import { CloudSync, loopbackRedirectUri, syncCallbackPage } from '../services/cloud-sync.js';
+import type { SignInMethod } from '../services/cloud-relay.js';
+import { CloudSync, LOOPBACK_HOSTS, loopbackRedirectUri, syncCallbackPage } from '../services/cloud-sync.js';
 import { CALLBACK_PAGE_CSP } from '../services/oauth-native.js';
 
-export function requireLoopbackRedirect(req: Request, refusal: string): string {
-  const redirectUri = loopbackRedirectUri(req.socket.remoteAddress, req.get('host'), req.socket.localPort);
-  if (!redirectUri) throw new AppError('SYNC_NEEDS_LOCAL_BROWSER', 400, refusal);
-  return redirectUri;
+const CLOUD_HOST = /(^|\.)mytickrs\.app$/i;
+
+export function signInMethod(req: Request, refusal: string): SignInMethod {
+  const host = req.get('host');
+  const url = host ? URL.parse(`http://${host}`) : null;
+  if (url == null || CLOUD_HOST.test(url.hostname)) {
+    throw new AppError('SYNC_NEEDS_LOCAL_BROWSER', 400, refusal);
+  }
+  if (LOOPBACK_HOSTS.includes(url.hostname)) {
+    const redirectUri = loopbackRedirectUri(req.socket.remoteAddress, host, req.socket.localPort);
+    if (redirectUri) return { kind: 'loopback', redirectUri };
+  }
+  return { kind: 'relay', instance: url.host };
 }
 
 function callbackParams(req: Request) {
@@ -65,14 +75,13 @@ export function cloudSyncRoutes(
     res.json(settings);
   });
 
-  api.post('/cloud-sync/sessions', (req, res) => {
+  api.post('/cloud-sync/sessions', async (req, res) => {
     const sync = syncOf(req);
-    const redirectUri = requireLoopbackRedirect(
-      req,
-      'Sync signs in through a browser on the computer running myTickrs. Open myTickrs there to sync.',
-    );
+    const refusal =
+      'Sync signs in through a browser on the computer running myTickrs. Open myTickrs there to sync.';
+    const method = signInMethod(req, refusal);
     const input = parse(startCloudSyncSchema, req.body);
-    res.status(201).json(sync.start(ctxOf(req), input, redirectUri));
+    res.status(201).json(await sync.start(ctxOf(req), input, method, refusal));
   });
 
   api.get('/cloud-sync/callback', async (req, res) => {

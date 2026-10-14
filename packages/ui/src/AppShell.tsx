@@ -41,7 +41,7 @@ export interface NavItem {
 
 const CONTACT_EMAIL = 'admin@mytickrs.com';
 
-export function Footer() {
+export function Footer({ version }: { version?: string } = {}) {
   const t = useT();
   return (
     <MuiBox
@@ -53,6 +53,7 @@ export function Footer() {
         <MuiLink href="https://mytickrs.com" color="inherit" target="_blank" rel="noopener noreferrer">
           mytickrs.com
         </MuiLink>
+        {version && ` v${version}`}
         {' · '}
         <MuiLink href={`mailto:${CONTACT_EMAIL}`} color="inherit">
           {t('shell.contact')}
@@ -66,10 +67,12 @@ export function AppShell({
   children,
   actions,
   nav,
+  version,
 }: {
   children: ReactNode;
   actions?: ReactNode;
   nav: readonly NavItem[];
+  version?: string;
 }) {
   const { pathname } = useLocation();
   const { resolved, setMode } = useThemeMode();
@@ -127,7 +130,7 @@ export function AppShell({
       <MuiContainer maxWidth="xl" sx={{ py: 3, flexGrow: 1 }}>
         {children}
       </MuiContainer>
-      <Footer />
+      <Footer version={version} />
     </MuiBox>
   );
 }

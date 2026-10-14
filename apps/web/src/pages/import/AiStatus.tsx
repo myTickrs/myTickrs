@@ -1,5 +1,5 @@
 import type { ImportConfig } from '@tickrs/shared';
-import { Banner, Button, Col, Dialog, Row, Text } from '@tickrs/ui';
+import { Banner, Button, Col, Dialog, isBrandedProvider, ProviderButton, Text } from '@tickrs/ui';
 import { useState } from 'react';
 import { useT } from '../../i18n.js';
 import { errorText } from '../../lib/api.js';
@@ -41,13 +41,27 @@ export function AiStatus({
       <Col gap={1}>
         <Text>{t('import.aiSignIn')}</Text>
         {ai.noAccount && <Banner tone="warning">{t('import.aiNoAccount', { account: ai.noAccount })}</Banner>}
-        <Row gap={1} wrap>
-          {ai.providers.map((provider) => (
-            <Button key={provider} onClick={() => void signIn(provider)}>
-              {t('import.signInWith', { provider: PROVIDER_NAMES[provider] ?? provider })}
-            </Button>
-          ))}
-        </Row>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 8,
+            maxWidth: 648,
+          }}
+        >
+          {ai.providers.map((provider) => {
+            const label = t('import.signInWith', { provider: PROVIDER_NAMES[provider] ?? provider });
+            return isBrandedProvider(provider) ? (
+              <ProviderButton key={provider} provider={provider} onClick={() => void signIn(provider)}>
+                {label}
+              </ProviderButton>
+            ) : (
+              <Button key={provider} onClick={() => void signIn(provider)}>
+                {label}
+              </Button>
+            );
+          })}
+        </div>
         {waiting && <Banner tone="info">{t('import.waitingForSignIn')}</Banner>}
         {error && <Banner tone="error">{error}</Banner>}
       </Col>

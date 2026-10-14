@@ -12,7 +12,7 @@ import { type CtxOf, parse } from '../http.js';
 import { requireFeature } from '../identity.js';
 import type { ImportAi } from '../import/ai.js';
 import { checkImport, commitImport, extractFile, importConfig, reviewRows } from '../services/import.js';
-import { requireLoopbackRedirect } from './cloud-sync.js';
+import { signInMethod } from './cloud-sync.js';
 
 export function importRoutes(api: Router, ctxOf: CtxOf, importAi: ImportAi | undefined): void {
   const importBody = express.json({ type: IMPORT_MEDIA_TYPE, limit: IMPORT_MAX_REQUEST_BYTES });
@@ -38,16 +38,15 @@ export function importRoutes(api: Router, ctxOf: CtxOf, importAi: ImportAi | und
     res.status(201).json(await commitImport(ctxOf(req), parse(commitRequestSchema, req.body)));
   });
 
-  api.post('/import/ai/sign-in', (req, res) => {
+  api.post('/import/ai/sign-in', async (req, res) => {
     requireFeature(ctxOf(req), 'ai-import');
     if (!importAi?.signIn)
       throw new AppError('IMPORT_UNAVAILABLE', 503, 'There is nothing to sign in to here');
-    const redirectUri = requireLoopbackRedirect(
-      req,
-      'Signing in uses a browser on the computer running myTickrs. Open myTickrs there to sign in.',
-    );
+    const refusal =
+      'Signing in uses a browser on the computer running myTickrs. Open myTickrs there to sign in.';
+    const method = signInMethod(req, refusal);
     const { provider } = parse(aiSignInSchema, req.body);
-    res.status(201).json(importAi.signIn.start(provider, redirectUri));
+    res.status(201).json(await importAi.signIn.start(provider, method, refusal));
   });
 
   api.delete('/import/ai/sign-in', (_req, res) => {

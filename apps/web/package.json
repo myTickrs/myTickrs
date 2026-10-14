@@ -1,6 +1,6 @@
 {
   "name": "@tickrs/web",
-  "version": "0.1.12",
+  "version": "0.1.32",
   "private": true,
   "type": "module",
   "exports": {
@@ -17,6 +17,7 @@
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
     "@tanstack/react-query": "^5.103.1",
+    "@tickrs/core": "0.1.0",
     "@tickrs/shared": "0.1.0",
     "@tickrs/ui": "0.1.0",
     "lightweight-charts": "^5.1.0",

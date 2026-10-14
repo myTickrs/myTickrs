@@ -181,6 +181,11 @@ Numbers, dates and currencies are formatted for the language you choose. The app
 
   Both directions ask you to confirm first, because they overwrite the other side.
 
+  You sign in with Google or Microsoft from any computer. If myTickrs runs on another machine,
+  such as a NAS or a Docker host you open by its network address, the sign-in page opens on
+  mytickrs.app, which names the myTickrs you are signing in for. Continue only if you started the
+  sign-in yourself.
+
 ---
 
 ## Getting started
@@ -249,7 +254,7 @@ deletes your database, so back up `data/` first if you want to keep it.
 ### 2. Run with Docker
 
 You can also run myTickrs in Docker, with nothing else installed on your computer. This works well
-on a home server or NAS too. The image is `files.mytickrs.app/mytickrs`, for x86-64 and ARM
+on a home server or NAS too. The image is `ghcr.io/mytickrs/mytickrs`, for x86-64 and ARM
 (including Apple silicon). Open a terminal and run the line for your system.
 
 **Windows** (PowerShell):
@@ -272,9 +277,9 @@ The installer:
    [get.docker.com](https://get.docker.com) on Linux. It starts Docker if it is not running.
    Installing Docker needs administrator rights: on macOS and Linux the installer uses `sudo`, which
    asks for your password, so run it from an administrator account.
-2. Downloads [docker-compose.yml](https://files.mytickrs.app/docker-compose.yml) into a `mytickrs-docker` folder
-   in your home folder, then downloads the image and starts it. Set `MYTICKRS_DIR` before running it
-   to use another folder.
+2. Writes [docker-compose.yml](https://files.mytickrs.app/docker-compose.yml) into a
+   `mytickrs-docker` folder in your home folder, then downloads the image from GitHub Container
+   Registry and starts it. Set `MYTICKRS_DIR` before running it to use another folder.
 3. Opens <http://localhost:5050> in your browser.
 
 The app then starts whenever Docker starts. Your data (the database and the key that encrypts

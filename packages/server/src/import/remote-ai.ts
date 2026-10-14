@@ -16,6 +16,7 @@ import type { Logger } from 'pino';
 import type { Ctx } from '../context.js';
 import { AppError } from '../errors.js';
 import type { CloudSyncConfig } from '../server-config.js';
+import { pollRelay, startRelay, type SignInMethod } from '../services/cloud-relay.js';
 import { beginSignIn, callbackPage, finishSignIn, type PendingSignIn } from '../services/oauth-native.js';
 import type { AiFile, AiSignIn, ImportAi } from './ai.js';
 
@@ -31,7 +32,8 @@ export interface RemoteImportAiDeps {
 }
 
 export class RemoteImportAi implements ImportAi {
-  #token: { idToken: string; email: string; expiresAt: number } | null = null;
+  #token: { bearer: string; email: string; expiresAt: number } | null = null;
+  #stopRelay: (() => void) | undefined;
   readonly #pending = new Map<
     string,
     { pending: PendingSignIn; provider: SignInProvider; startedAt: number }
@@ -40,11 +42,13 @@ export class RemoteImportAi implements ImportAi {
 
   constructor(private readonly deps: RemoteImportAiDeps) {
     this.signIn = {
-      start: (provider, redirectUri) => this.#start(provider, redirectUri),
+      start: (provider, method, refusal) => this.#start(provider, method, refusal),
       owns: (state) => Boolean(state && this.#pending.has(state)),
       complete: (callback) => this.#complete(callback),
       signOut: () => {
         this.#token = null;
+        this.#stopRelay?.();
+        this.#stopRelay = undefined;
       },
     };
   }
@@ -53,7 +57,7 @@ export class RemoteImportAi implements ImportAi {
     return SIGN_IN_PROVIDERS.filter((p) => this.deps.config.providers[p]);
   }
 
-  #tokenNow(): { idToken: string; email: string } | null {
+  #tokenNow(): { bearer: string; email: string } | null {
     if (this.#token && this.#token.expiresAt > this.deps.now().getTime()) return this.#token;
     this.#token = null;
     return null;
@@ -113,16 +117,38 @@ export class RemoteImportAi implements ImportAi {
     return parsed.data;
   }
 
-  #start(provider: string, redirectUri: string): { authorizeUrl: string } {
+  async #start(provider: string, method: SignInMethod, refusal: string): Promise<{ authorizeUrl: string }> {
     const client = this.deps.config.providers[provider as SignInProvider];
     if (!client)
       throw new AppError('VALIDATION_FAILED', 422, `Signing in with ${provider} is not set up here`);
+    if (method.kind === 'relay')
+      return this.#startRelay(provider as SignInProvider, method.instance, refusal);
     const now = this.deps.now().getTime();
     for (const [state, entry] of this.#pending)
       if (now - entry.startedAt > SIGN_IN_TTL_MS) this.#pending.delete(state);
-    const pending = beginSignIn(client, redirectUri);
+    const pending = beginSignIn(client, method.redirectUri);
     this.#pending.set(pending.state, { pending, provider: provider as SignInProvider, startedAt: now });
     return { authorizeUrl: pending.authorizeUrl };
+  }
+
+  async #startRelay(provider: SignInProvider, instance: string, refusal: string) {
+    const relay = await startRelay(this.deps, { provider, client: 'import', instance, refusal });
+    this.#stopRelay?.();
+    this.#stopRelay = pollRelay(this.deps, relay, (result) => {
+      this.#stopRelay = undefined;
+      if (result.kind === 'failed') {
+        this.deps.logger?.warn({ reason: result.message }, 'AI import sign-in failed');
+        return;
+      }
+      this.#token = {
+        bearer: result.token,
+        email: result.email,
+        expiresAt: Date.parse(result.expiresAt) - 60_000,
+      };
+      this.#noAccount = null;
+      this.deps.logger?.info({ account: result.email }, 'signed in to the cloud for AI import');
+    });
+    return { authorizeUrl: relay.startUrl };
   }
 
   async #complete(callback: { state?: string; code?: string; error?: string; errorDescription?: string }) {
@@ -142,7 +168,11 @@ export class RemoteImportAi implements ImportAi {
         callback.code,
         this.deps,
       );
-      this.#token = { ...signedIn, expiresAt: this.deps.now().getTime() + TOKEN_TTL_MS };
+      this.#token = {
+        bearer: signedIn.idToken,
+        email: signedIn.email,
+        expiresAt: this.deps.now().getTime() + TOKEN_TTL_MS,
+      };
       this.#noAccount = null;
       this.deps.logger?.info({ account: signedIn.email }, 'signed in to the cloud for AI import');
       return callbackPage(
@@ -163,7 +193,7 @@ export class RemoteImportAi implements ImportAi {
       res = await this.deps.fetch(`${this.deps.config.cloudUrl}${path}`, {
         method,
         headers: {
-          authorization: `Bearer ${token.idToken}`,
+          authorization: `Bearer ${token.bearer}`,
           accept: 'application/json',
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
         },

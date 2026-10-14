@@ -15,6 +15,7 @@ export interface ServerConfig {
 export interface CloudSyncConfig {
   cloudUrl: string;
   providers: Partial<Record<SignInProvider, OAuthClientConfig>>;
+  relayPollMs?: number;
 }
 
 export interface OAuthClientConfig {

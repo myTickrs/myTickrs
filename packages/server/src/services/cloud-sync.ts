@@ -20,6 +20,7 @@ import { AppError } from '../errors.js';
 import type { CloudSyncConfig } from '../server-config.js';
 import type { DesktopPort, SyncBase } from '../store/ports.js';
 import { backupFingerprint, exportBackup, lastChangedAt, restoreBackup } from './backup.js';
+import { pollRelay, startRelay, type SignInMethod } from './cloud-relay.js';
 import { beginSignIn, callbackPage, finishSignIn, type PendingSignIn } from './oauth-native.js';
 
 const SIGN_IN_TTL_MS = 10 * 60_000;
@@ -39,7 +40,8 @@ interface Session {
   ctx: Ctx;
   pending?: PendingSignIn;
   startedAt: number;
-  idToken?: string;
+  stopRelay?: () => void;
+  bearer?: string;
   shown?: { local: string; cloud?: string };
 }
 
@@ -115,22 +117,35 @@ export class CloudSync {
     return { at: base.syncedAt, account: base.account };
   }
 
-  start(ctx: Ctx, input: StartCloudSyncInput, redirectUri: string): CloudSyncSession {
+  async start(
+    ctx: Ctx,
+    input: StartCloudSyncInput,
+    method: SignInMethod,
+    refusal = 'Sync signs in through a browser on the computer running myTickrs.',
+  ): Promise<CloudSyncSession> {
     const client = this.deps.config.providers[input.provider];
     if (!client) {
       throw new AppError('VALIDATION_FAILED', 422, `Signing in with ${input.provider} is not set up here`);
     }
     desktopOf(ctx);
     this.#sweep();
-    for (const s of this.#sessions.values()) {
-      if (BUSY.has(s.view.status)) {
-        throw new AppError('SYNC_IN_PROGRESS', 409, 'A sync is already running; wait for it to finish');
-      }
-      if (WAITING.has(s.view.status)) this.#finish(s, 'cancelled');
-    }
+    this.#refuseIfBusy();
 
-    const pending = beginSignIn(client, redirectUri);
+    const relay =
+      method.kind === 'relay'
+        ? await startRelay(this.deps, {
+            provider: input.provider,
+            client: 'sync',
+            instance: method.instance,
+            refusal,
+          })
+        : undefined;
+    this.#refuseIfBusy();
+    for (const s of this.#sessions.values()) if (WAITING.has(s.view.status)) this.#finish(s, 'cancelled');
+
+    const pending = method.kind === 'loopback' ? beginSignIn(client, method.redirectUri) : undefined;
     const now = this.deps.now().getTime();
+    const expiresAt = Math.min(now + SIGN_IN_TTL_MS, relay ? Date.parse(relay.expiresAt) : Infinity);
     const session: Session = {
       ctx,
       pending,
@@ -139,13 +154,48 @@ export class CloudSync {
         id: randomUUID(),
         provider: input.provider,
         status: 'awaiting-sign-in',
-        authorizeUrl: pending.authorizeUrl,
-        expiresAt: new Date(now + SIGN_IN_TTL_MS).toISOString(),
+        authorizeUrl: relay?.startUrl ?? pending!.authorizeUrl,
+        expiresAt: new Date(expiresAt).toISOString(),
       },
     };
+    if (relay) {
+      session.stopRelay = pollRelay(this.deps, relay, (result) => {
+        session.stopRelay = undefined;
+        if (session.view.status !== 'awaiting-sign-in') return;
+        delete session.view.authorizeUrl;
+        if (this.deps.now().getTime() >= Date.parse(session.view.expiresAt)) {
+          this.#finish(session, 'expired');
+          return;
+        }
+        if (result.kind === 'failed') {
+          this.#fail(session, new AppError('CLOUD_SIGN_IN_FAILED', 401, result.message));
+          return;
+        }
+        this.#signedIn(session, result.email, result.token);
+      });
+    }
     this.#sessions.set(session.view.id, session);
-    this.deps.logger?.info({ sync: session.view.id, provider: input.provider }, 'sync started');
+    this.deps.logger?.info(
+      { sync: session.view.id, provider: input.provider, via: method.kind },
+      'sync started',
+    );
     return this.#view(session);
+  }
+
+  #refuseIfBusy(): void {
+    for (const s of this.#sessions.values()) {
+      if (BUSY.has(s.view.status)) {
+        throw new AppError('SYNC_IN_PROGRESS', 409, 'A sync is already running; wait for it to finish');
+      }
+    }
+  }
+
+  #signedIn(session: Session, email: string, bearer: string): void {
+    session.view.account = { email };
+    session.bearer = bearer;
+    session.view.status = 'comparing';
+    this.deps.logger?.info({ sync: session.view.id, account: email }, 'sync signed in');
+    void this.#compare(session);
   }
 
   get(id: string): CloudSyncSession {
@@ -186,11 +236,7 @@ export class CloudSync {
     const client = this.deps.config.providers[session.view.provider]!;
     try {
       const signedIn = await finishSignIn(client, pending, callback.code, this.deps);
-      session.view.account = { email: signedIn.email };
-      session.idToken = signedIn.idToken;
-      session.view.status = 'comparing';
-      this.deps.logger?.info({ sync: session.view.id, account: signedIn.email }, 'sync signed in');
-      void this.#compare(session);
+      this.#signedIn(session, signedIn.email, signedIn.idToken);
     } catch (error) {
       this.#fail(session, error);
     }
@@ -216,7 +262,7 @@ export class CloudSync {
     try {
       const desktop = desktopOf(session.ctx);
       const [status, file, base] = await Promise.all([
-        this.#status(session.idToken!),
+        this.#status(session.bearer!),
         exportBackup(session.ctx),
         desktop.syncBase(),
       ]);
@@ -245,14 +291,14 @@ export class CloudSync {
     try {
       const { ctx } = session;
       const shown = session.shown!;
-      const idToken = session.idToken!;
+      const bearer = session.bearer!;
       const before = await exportBackup(ctx);
       if (backupFingerprint(before) !== shown.local) throw stale('local');
 
       const outcome =
         session.view.direction === 'to-cloud'
-          ? await this.#pushToCloud(before, idToken, shown.cloud)
-          : await this.#pullFromCloud(ctx, idToken, shown.cloud);
+          ? await this.#pushToCloud(before, bearer, shown.cloud)
+          : await this.#pullFromCloud(ctx, bearer, shown.cloud);
       session.view.result = outcome.result;
 
       await desktopOf(ctx).setSyncBase({
@@ -269,8 +315,8 @@ export class CloudSync {
     }
   }
 
-  async #status(idToken: string): Promise<SyncStatus> {
-    const res = await this.#cloud(SYNC_PATHS.status, idToken, { method: 'GET' });
+  async #status(bearer: string): Promise<SyncStatus> {
+    const res = await this.#cloud(SYNC_PATHS.status, bearer, { method: 'GET' });
     if (!res.ok) throw await this.#cloudError(res);
     const body = (await res.json().catch(() => null)) as SyncStatus | null;
     if (!body || typeof body.exists !== 'boolean' || (body.exists && typeof body.fingerprint !== 'string')) {
@@ -279,8 +325,8 @@ export class CloudSync {
     return body;
   }
 
-  async #pushToCloud(file: BackupFile, idToken: string, expected: string | undefined) {
-    const res = await this.#cloud(SYNC_PATHS.pushToCloud, idToken, {
+  async #pushToCloud(file: BackupFile, bearer: string, expected: string | undefined) {
+    const res = await this.#cloud(SYNC_PATHS.pushToCloud, bearer, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -301,8 +347,8 @@ export class CloudSync {
     return { result, cloudFingerprint: body.fingerprint };
   }
 
-  async #pullFromCloud(ctx: Ctx, idToken: string, expected: string | undefined) {
-    const res = await this.#cloud(SYNC_PATHS.pullFromCloud, idToken, { method: 'GET' });
+  async #pullFromCloud(ctx: Ctx, bearer: string, expected: string | undefined) {
+    const res = await this.#cloud(SYNC_PATHS.pullFromCloud, bearer, { method: 'GET' });
     if (!res.ok) throw await this.#cloudError(res);
     const cloudFingerprint = res.headers.get(SYNC_FINGERPRINT_HEADER);
     if (!cloudFingerprint || cloudFingerprint !== expected) {
@@ -346,11 +392,11 @@ export class CloudSync {
     return Buffer.concat(chunks).toString('utf8');
   }
 
-  async #cloud(path: string, idToken: string, init: RequestInit): Promise<Response> {
+  async #cloud(path: string, bearer: string, init: RequestInit): Promise<Response> {
     try {
       return await this.deps.fetch(`${this.deps.config.cloudUrl}${path}`, {
         ...init,
-        headers: { ...init.headers, authorization: `Bearer ${idToken}`, accept: 'application/json' },
+        headers: { ...init.headers, authorization: `Bearer ${bearer}`, accept: 'application/json' },
         signal: AbortSignal.timeout(CLOUD_TIMEOUT_MS),
       });
     } catch {
@@ -407,7 +453,9 @@ export class CloudSync {
   #finish(session: Session, status: CloudSyncSession['status']): void {
     session.view.status = status;
     session.pending = undefined;
-    session.idToken = undefined;
+    session.stopRelay?.();
+    session.stopRelay = undefined;
+    session.bearer = undefined;
     session.shown = undefined;
     delete session.view.authorizeUrl;
   }
@@ -445,15 +493,16 @@ export function isLoopback(address: string | undefined): boolean {
 const loopbackCallback = (port: string | number | undefined) =>
   `http://127.0.0.1:${port}/api/v1/cloud-sync/callback`;
 
+export const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
 export function loopbackRedirectUri(
   remoteAddress: string | undefined,
   host: string | undefined,
   localPort: number | undefined,
 ): string | undefined {
   const url = host ? URL.parse(`http://${host}`) : null;
-  if (isLoopback(remoteAddress)) return loopbackCallback(localPort);
-  if (url == null || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return undefined;
-  return loopbackCallback(url.port || 80);
+  if (url == null || !LOOPBACK_HOSTS.includes(url.hostname)) return undefined;
+  return loopbackCallback(isLoopback(remoteAddress) ? localPort : url.port || 80);
 }
 
 export function syncCallbackPage(session: CloudSyncSession | undefined, failure?: string): string {

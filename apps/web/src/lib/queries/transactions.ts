@@ -1,6 +1,6 @@
-import type { CreateTransactionRequest, FeeQuoteRequest, UpdateTransactionRequest } from '@tickrs/shared';
+import type { CreateTransactionRequest, UpdateTransactionRequest } from '@tickrs/shared';
 import { useQuery } from '@tanstack/react-query';
-import { api, type FeeBreakdown, type Paged, type Transaction, withQuery } from '../api.js';
+import { api, type Paged, type Transaction, withQuery } from '../api.js';
 import { keys, seg } from './keys.js';
 
 export const useTransactions = (query: string) =>
@@ -8,8 +8,6 @@ export const useTransactions = (query: string) =>
     queryKey: keys.transactions(query),
     queryFn: () => api.get<Paged<Transaction>>(`/transactions?${query}`),
   });
-
-export const quoteFee = (body: FeeQuoteRequest) => api.post<FeeBreakdown>('/fees/quote', body);
 
 export const getTransaction = (id: string) => api.get<Transaction>(`/transactions/${seg(id)}`);
 export const listTransactions = (params: Record<string, string | undefined>) =>

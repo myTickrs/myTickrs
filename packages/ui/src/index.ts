@@ -2,6 +2,7 @@ export * from './AppShell.js';
 export * from './DataTable.js';
 export * from './ExpandableTable.js';
 export * from './LanguageMenu.js';
+export * from './ProviderButton.js';
 export * from './Logo.js';
 export * from './primitives.js';
 export * from './theme.js';

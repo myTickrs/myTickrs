@@ -8,7 +8,7 @@ import { useT } from './i18n.js';
 import { ApiError } from './lib/api.js';
 import { useFxRateSync } from './lib/fx-rates.js';
 import { useQuoteRefresh } from './lib/quotes.js';
-import { useAccounts, useCapabilities } from './lib/queries.js';
+import { useAccounts, useCapabilities, useFeeSchedules } from './lib/queries.js';
 import { compose, type HeaderProps, type Plugin, type ShellApi } from './plugins.js';
 
 function defaultQueryClient() {
@@ -45,6 +45,8 @@ function Shell({
   const accounts = useAccounts();
   useFxRateSync();
   useQuoteRefresh();
+  const accountIds = useMemo(() => (accounts.data?.items ?? []).map((a) => a.id), [accounts.data]);
+  useFeeSchedules(accountIds);
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import type { Capabilities, FeeScheduleRequest, FeeScheduleResponse, MarketDef } from '@tickrs/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import {
   api,
   type Account,
@@ -56,12 +56,16 @@ export const useMarkets = (enabled = true) =>
     queryFn: () => api.get<{ items: MarketItem[] }>('/settings/markets'),
   });
 
+const feeScheduleQuery = (accountId: string) => ({
+  queryKey: keys.feeSchedule(accountId),
+  queryFn: () => api.get<FeeScheduleResponse>(`/accounts/${seg(accountId)}/fee-schedule`),
+});
+
 export const useFeeSchedule = (accountId: string | undefined) =>
-  useQuery({
-    enabled: Boolean(accountId),
-    queryKey: keys.feeSchedule(accountId ?? ''),
-    queryFn: () => api.get<FeeScheduleResponse>(`/accounts/${accountId}/fee-schedule`),
-  });
+  useQuery({ enabled: Boolean(accountId), ...feeScheduleQuery(accountId ?? '') });
+
+export const useFeeSchedules = (accountIds: readonly string[]) =>
+  useQueries({ queries: accountIds.map(feeScheduleQuery) });
 
 export const patchSettings = (patch: Partial<Settings>) => api.patch<Settings>('/settings', patch);
 

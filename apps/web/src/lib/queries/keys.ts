@@ -22,8 +22,6 @@ export const keys = {
   performance: (query: string) => ['portfolio', 'performance', query] as const,
   stockChart: (symbol: string, range: Range) => ['stocks', symbol, 'chart', range] as const,
   positionOpenings: (contractId: string) => ['transactions', 'openings', contractId] as const,
-  feeQuote: (accountId: string, type: string, quantity: string, price: string, symbol?: string) =>
-    ['fee-quote', accountId, type, quantity, price, symbol ?? ''] as const,
   contractTerms: (...terms: string[]) => ['contract-terms', ...terms] as const,
   rollPreview: (body: object) => ['roll-preview', body] as const,
   cloudSync: ['cloud-sync'] as const,

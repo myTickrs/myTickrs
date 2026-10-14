@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { calculateFee, type FeeInput } from '@tickrs/core';
 import { AutocompleteField, Banner, Button, Col, Field, Row, Select, Text } from '@tickrs/ui';
 import { Dialog } from '@tickrs/ui';
 import {
   type AssignmentExerciseType,
   type CreateTransactionRequest,
+  type FeeScheduleResponse,
   isAssignmentOrExercise,
   isCashAmount,
   isFeeCharged,
   isOptionLifecycle,
   isPriced,
+  nonNegativeDecimal,
   OPTION_TRANSACTION_TYPES,
   type OptionTradeType,
+  positiveDecimal,
   type StockTradeType,
 } from '@tickrs/shared';
 import { t as translate, useT } from '../i18n.js';
@@ -26,19 +30,31 @@ import {
   type Transaction,
 } from '../lib/api.js';
 import { formatMoney, toDecimalInput, todayIso, typeLabel } from '../lib/format.js';
-import { listingIn, optionTermsOf, optionUnderlying, splitListing } from '../lib/markets.js';
+import { listingIn, marketOfSymbol, optionTermsOf, optionUnderlying, splitListing } from '../lib/markets.js';
 import {
   addAccounts,
   createTransaction,
   keys,
   lookupContractTerms,
-  quoteFee,
+  useFeeSchedule,
   useLedgerMutation,
   useMarkets,
   useSecuritySearch,
 } from '../lib/queries.js';
 
 type Kind = 'STOCK' | 'OPTION';
+
+export function feeFor(
+  schedule: FeeScheduleResponse | undefined,
+  input: Omit<FeeInput, 'type' | 'multiplier'> & { type: string; multiplier?: string },
+): string | null {
+  if (schedule === undefined || !isFeeCharged(input.type)) return null;
+  if (!positiveDecimal.safeParse(input.quantity).success) return null;
+  if (!nonNegativeDecimal.safeParse(input.price).success) return null;
+  const multiplier =
+    input.multiplier && positiveDecimal.safeParse(input.multiplier).success ? input.multiplier : undefined;
+  return calculateFee(schedule ?? {}, { ...input, type: input.type, multiplier }).total;
+}
 
 const stockTypes = () => [
   { value: 'BUY', label: typeLabel('BUY') },
@@ -217,22 +233,7 @@ export function TransactionDialog({
   const listing = needsMarket ? listingIn(marketList, typed, market) : symbol;
 
   const underlying = kind === 'OPTION' ? optionUnderlying(marketList, typed, accountCurrency) : '';
-  const feeType = isFeeCharged(type) ? type : null;
-  const quotedSymbol = (kind === 'OPTION' ? underlying : listing).trim().toUpperCase() || undefined;
-  const feeQuote = useQuery({
-    enabled: open && Boolean(accountId) && feeType != null,
-    queryKey: keys.feeQuote(accountId, type, quantity, price, quotedSymbol),
-    queryFn: () =>
-      quoteFee({
-        accountId,
-        type: feeType!,
-        quantity: quantity || '1',
-        price: price || '0',
-        ...(quotedSymbol ? { symbol: quotedSymbol } : {}),
-      }),
-    retry: false,
-  });
-  const feeAuto = feeQuote.data?.total ?? null;
+  const feeSchedule = useFeeSchedule(open ? accountId : undefined);
 
   const knownTerms = useQuery({
     enabled: open && kind === 'OPTION' && !closing && typed !== '',
@@ -259,6 +260,15 @@ export function TransactionDialog({
   const unsupported = kind === 'OPTION' && marketList.length > 0 && underlying !== '' && !terms;
   const size = terms?.multiplier ?? (marketList.length === 0 ? '100' : null);
   const sizeValue = sizeTyped ? multiplier : (recorded?.multiplier ?? size ?? '');
+  const quotedSymbol = (kind === 'OPTION' ? underlying : listing).trim().toUpperCase();
+  const feeAuto = feeFor(feeSchedule.data, {
+    type,
+    quantity: toDecimalInput(quantity) || '1',
+    price: toDecimalInput(price) || '0',
+    multiplier: kind === 'OPTION' ? toDecimalInput(sizeValue) : undefined,
+    usListing:
+      !quotedSymbol || marketList.length === 0 || marketOfSymbol(marketList, quotedSymbol)?.country === 'US',
+  });
   const isIndex = underlying.startsWith('^');
   const cashSettled = terms?.settlement === 'CASH';
   const settles = isAssignmentOrExercise(type);

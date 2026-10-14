@@ -8,6 +8,7 @@ import type {
   StructuredSample,
 } from '@tickrs/shared';
 import type { Ctx } from '../context.js';
+import type { SignInMethod } from '../services/cloud-relay.js';
 
 export interface ImportAi {
   config(ctx: Ctx): Promise<ImportConfig['ai']>;
@@ -25,7 +26,7 @@ export interface AiFile {
 }
 
 export interface AiSignIn {
-  start(provider: string, redirectUri: string): { authorizeUrl: string };
+  start(provider: string, method: SignInMethod, refusal: string): Promise<{ authorizeUrl: string }>;
   owns(state: string | undefined): boolean;
   complete(callback: {
     state?: string;
