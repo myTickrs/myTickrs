@@ -161,9 +161,9 @@ export interface OptionQuotesPort {
   latest(): Promise<(QuoteRow & { previousClose: string | null; asOf: IsoTimestamp })[]>;
   daily(): Promise<(QuoteRow & { date: IsoDate })[]>;
   quoteTimes(contractIds: readonly Uuid[]): Promise<{ optionContractId: Uuid; fetchedAt: IsoTimestamp }[]>;
-  upsertLatest(rows: readonly Omit<Insertable<OptionQuoteLatestTable>, 'ownerId'>[]): Promise<void>;
-  upsertDaily(rows: readonly Omit<Insertable<OptionQuoteDailyTable>, 'ownerId'>[]): Promise<void>;
-  addDaily(rows: readonly Omit<Insertable<OptionQuoteDailyTable>, 'ownerId'>[]): Promise<void>;
+  upsertLatest(rows: readonly Insertable<OptionQuoteLatestTable>[]): Promise<void>;
+  upsertDaily(rows: readonly Insertable<OptionQuoteDailyTable>[]): Promise<void>;
+  addDaily(rows: readonly Insertable<OptionQuoteDailyTable>[]): Promise<void>;
   manualMarks(): Promise<{ optionContractId: Uuid; mark: string; asOf: IsoDate }[]>;
   setManualMark(input: { optionContractId: Uuid; mark: string; asOf: IsoDate }): Promise<void>;
   clearManualMark(contractId: Uuid): Promise<void>;

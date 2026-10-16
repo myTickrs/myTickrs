@@ -339,16 +339,31 @@ export function storeConformance(
       expect(await h.store.scope(h.alice).optionQuotes.manualMarks()).toEqual([]);
     });
 
-    it('keeps each user’s own option quotes, never letting an older one replace a newer', async () => {
-      const contract = await h.store.transaction(h.alice, async (tx) => {
-        await tx.securities.ensure('AAPL', { currency: 'USD' });
-        return tx.contracts.ensure({
-          underlying: 'AAPL',
+    const sellNewContract = async (who: Principal) => {
+      const underlying = await tradeNew(who);
+      const a = await account(who, 'Options');
+      return h.store.transaction(who, async (tx) => {
+        const contract = await tx.contracts.ensure({
+          underlying,
           expiration: '2026-10-16',
           strike: '190',
           right: 'PUT',
         });
+        await tx.transactions.insertMany([
+          buy(a.id, {
+            assetClass: 'OPTION',
+            symbol: underlying,
+            optionContractId: contract.id,
+            type: 'STO',
+            quantity: '1',
+          }),
+        ]);
+        return contract;
       });
+    };
+
+    it('shares option quotes between users, listing only the contracts a user has traded, and never lets an older one replace a newer', async () => {
+      const contract = await sellNewContract(h.alice);
       const optionQuote = (last: string, asOf: string, fetchedAt = asOf) => ({
         optionContractId: contract.id,
         bid: null,
@@ -374,13 +389,18 @@ export function storeConformance(
           optionQuote('2.1', '2026-09-18T19:00:00.000Z', '2026-09-18T20:10:00.000Z'),
         ]),
       );
-      const [latest] = await alice().latest();
+      const mine = async (who: Principal) =>
+        (await h.store.scope(who).optionQuotes.latest()).filter((q) => q.optionContractId === contract.id);
+      const [latest] = await mine(h.alice);
       expect(decEquals(latest!.last!, '2.5')).toBe(true);
       expect(decEquals(latest!.previousClose!, '2.7')).toBe(true);
       const [time] = await alice().quoteTimes([contract.id]);
       expect(String(time!.fetchedAt)).toContain('2026-09-18T20:10:00');
-      expect(await h.store.scope(h.bob).optionQuotes.latest()).toEqual([]);
-      expect(await h.store.scope(h.bob).optionQuotes.quoteTimes([contract.id])).toEqual([]);
+
+      expect(await mine(h.bob)).toEqual([]);
+      expect(
+        (await h.store.scope(h.bob).optionQuotes.quoteTimes([contract.id])).map((t) => t.optionContractId),
+      ).toEqual([contract.id]);
 
       const daily = (last: string) => ({
         optionContractId: contract.id,
@@ -398,18 +418,37 @@ export function storeConformance(
       });
       await h.store.transaction(h.alice, (tx) => tx.optionQuotes.upsertDaily([daily('2.4')]));
       await h.store.transaction(h.alice, (tx) => tx.optionQuotes.upsertDaily([daily('2.6')]));
-      const days = await alice().daily();
+      const dailyOf = async (who: Principal) =>
+        (await h.store.scope(who).optionQuotes.daily()).filter((d) => d.optionContractId === contract.id);
+      const days = await dailyOf(h.alice);
       expect(days).toHaveLength(1);
       expect(decEquals(days[0]!.last!, '2.6')).toBe(true);
 
       await h.store.transaction(h.alice, (tx) =>
         tx.optionQuotes.addDaily([daily('2.2'), { ...daily('2.3'), date: '2026-09-17' }]),
       );
-      const filled = await alice().daily();
+      const filled = await dailyOf(h.alice);
       expect(filled.map((d) => [d.date, Number(d.last)])).toEqual([
         ['2026-09-17', 2.3],
         ['2026-09-18', 2.6],
       ]);
+      expect(await dailyOf(h.bob)).toEqual([]);
+
+      const b = await account(h.bob);
+      await h.store.transaction(h.bob, (tx) =>
+        tx.transactions.insertMany([
+          buy(b.id, {
+            assetClass: 'OPTION',
+            symbol: contract.underlyingSymbol,
+            optionContractId: contract.id,
+            type: 'STO',
+            quantity: '1',
+          }),
+        ]),
+      );
+      const [bobs] = await mine(h.bob);
+      expect(decEquals(bobs!.last!, '2.5')).toBe(true);
+      expect(await dailyOf(h.bob)).toHaveLength(2);
     });
 
     it('invalidates cached snapshots from a date onward', async () => {

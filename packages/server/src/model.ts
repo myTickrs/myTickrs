@@ -244,7 +244,6 @@ export interface PriceLatestTable {
 }
 
 export interface OptionQuoteDailyTable {
-  ownerId: Uuid;
   optionContractId: Uuid;
   date: IsoDate;
   bid: DecimalString | null;
@@ -260,7 +259,6 @@ export interface OptionQuoteDailyTable {
 }
 
 export interface OptionQuoteLatestTable {
-  ownerId: Uuid;
   optionContractId: Uuid;
   bid: DecimalString | null;
   ask: DecimalString | null;

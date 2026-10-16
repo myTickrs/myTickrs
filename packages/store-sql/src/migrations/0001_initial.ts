@@ -342,7 +342,6 @@ export async function up(db: AnyDb): Promise<void> {
 
   await db.schema
     .createTable('option_quote_daily')
-    .addColumn('owner_id', t.id, (c) => c.notNull().references('users.id').onDelete('cascade'))
     .addColumn('option_contract_id', t.id, (c) => c.notNull().references('option_contracts.id'))
     .addColumn('date', t.date, (c) => c.notNull())
     .addColumn('bid', t.dec)
@@ -355,12 +354,11 @@ export async function up(db: AnyDb): Promise<void> {
     .addColumn('delta', t.dec)
     .addColumn('theta', t.dec)
     .addColumn('source', 'text', (c) => c.notNull())
-    .addPrimaryKeyConstraint('option_quote_daily_pk', ['owner_id', 'option_contract_id', 'date'])
+    .addPrimaryKeyConstraint('option_quote_daily_pk', ['option_contract_id', 'date'])
     .execute();
 
   await db.schema
     .createTable('option_quote_latest')
-    .addColumn('owner_id', t.id, (c) => c.notNull().references('users.id').onDelete('cascade'))
     .addColumn('option_contract_id', t.id, (c) => c.notNull().references('option_contracts.id'))
     .addColumn('bid', t.dec)
     .addColumn('ask', t.dec)
@@ -375,7 +373,7 @@ export async function up(db: AnyDb): Promise<void> {
     .addColumn('source', 'text', (c) => c.notNull())
     .addColumn('as_of', t.ts, (c) => c.notNull())
     .addColumn('fetched_at', t.ts, (c) => c.notNull())
-    .addPrimaryKeyConstraint('option_quote_latest_pk', ['owner_id', 'option_contract_id'])
+    .addPrimaryKeyConstraint('option_quote_latest_pk', ['option_contract_id'])
     .execute();
 
   await db.schema

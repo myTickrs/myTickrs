@@ -12,27 +12,40 @@ import { normalizeRow } from './common.js';
 
 const QUOTE_DECIMALS = ['bid', 'ask', 'last', 'mark', 'volume', 'openInterest', 'iv', 'delta'] as const;
 
-export async function listLatestOptionQuotes(db: Executor, ownerId: Uuid) {
-  const rows = await db.selectFrom('optionQuoteLatest').selectAll().where('ownerId', '=', ownerId).execute();
+function contractsTradedBy(db: Executor, userId: Uuid) {
+  return db
+    .selectFrom('transactions')
+    .innerJoin('accounts', 'accounts.id', 'transactions.accountId')
+    .select('transactions.optionContractId')
+    .where('accounts.userId', '=', userId)
+    .where('transactions.optionContractId', 'is not', null)
+    .$narrowType<{ optionContractId: Uuid }>();
+}
+
+export async function listLatestOptionQuotes(db: Executor, userId: Uuid) {
+  const rows = await db
+    .selectFrom('optionQuoteLatest')
+    .selectAll()
+    .where('optionContractId', 'in', contractsTradedBy(db, userId))
+    .execute();
   return rows.map((r) => normalizeRow(r, ['bid', 'ask', 'last', 'mark', 'iv', 'delta', 'previousClose']));
 }
 
-export async function listDailyOptionQuotes(db: Executor, ownerId: Uuid) {
+export async function listDailyOptionQuotes(db: Executor, userId: Uuid) {
   const rows = await db
     .selectFrom('optionQuoteDaily')
     .selectAll()
-    .where('ownerId', '=', ownerId)
+    .where('optionContractId', 'in', contractsTradedBy(db, userId))
     .orderBy('date')
     .execute();
   return rows.map((r) => normalizeRow(r, QUOTE_DECIMALS));
 }
 
-export function listOptionQuoteTimes(db: Executor, ownerId: Uuid, contractIds: readonly Uuid[]) {
+export function listOptionQuoteTimes(db: Executor, contractIds: readonly Uuid[]) {
   if (contractIds.length === 0) return Promise.resolve([]);
   return db
     .selectFrom('optionQuoteLatest')
     .select(['optionContractId', 'fetchedAt'])
-    .where('ownerId', '=', ownerId)
     .where('optionContractId', 'in', [...contractIds])
     .execute();
 }
@@ -54,15 +67,14 @@ const LATEST_COLUMNS = [
 
 export async function upsertLatestOptionQuotes(
   db: Executor,
-  ownerId: Uuid,
-  rows: readonly Omit<Insertable<OptionQuoteLatestTable>, 'ownerId'>[],
+  rows: readonly Insertable<OptionQuoteLatestTable>[],
 ): Promise<void> {
   if (rows.length === 0) return;
   await db
     .insertInto('optionQuoteLatest')
-    .values(rows.map((r) => ({ ...r, ownerId })))
+    .values([...rows])
     .onConflict((oc) =>
-      oc.columns(['ownerId', 'optionContractId']).doUpdateSet((eb) => {
+      oc.columns(['optionContractId']).doUpdateSet((eb) => {
         const newer = eb('excluded.asOf', '>=', eb.ref('optionQuoteLatest.asOf'));
         const pick = (c: (typeof LATEST_COLUMNS)[number]) =>
           eb
@@ -82,15 +94,14 @@ export async function upsertLatestOptionQuotes(
 
 export async function upsertDailyOptionQuotes(
   db: Executor,
-  ownerId: Uuid,
-  rows: readonly Omit<Insertable<OptionQuoteDailyTable>, 'ownerId'>[],
+  rows: readonly Insertable<OptionQuoteDailyTable>[],
 ): Promise<void> {
   if (rows.length === 0) return;
   await db
     .insertInto('optionQuoteDaily')
-    .values(rows.map((r) => ({ ...r, ownerId })))
+    .values([...rows])
     .onConflict((oc) =>
-      oc.columns(['ownerId', 'optionContractId', 'date']).doUpdateSet((eb) => ({
+      oc.columns(['optionContractId', 'date']).doUpdateSet((eb) => ({
         bid: eb.ref('excluded.bid'),
         ask: eb.ref('excluded.ask'),
         last: eb.ref('excluded.last'),
@@ -108,14 +119,13 @@ export async function upsertDailyOptionQuotes(
 
 export async function addDailyOptionQuotes(
   db: Executor,
-  ownerId: Uuid,
-  rows: readonly Omit<Insertable<OptionQuoteDailyTable>, 'ownerId'>[],
+  rows: readonly Insertable<OptionQuoteDailyTable>[],
 ): Promise<void> {
   if (rows.length === 0) return;
   await db
     .insertInto('optionQuoteDaily')
-    .values(rows.map((r) => ({ ...r, ownerId })))
-    .onConflict((oc) => oc.columns(['ownerId', 'optionContractId', 'date']).doNothing())
+    .values([...rows])
+    .onConflict((oc) => oc.columns(['optionContractId', 'date']).doNothing())
     .execute();
 }
 
