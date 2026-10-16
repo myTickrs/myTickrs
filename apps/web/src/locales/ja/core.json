@@ -75,6 +75,18 @@
     "ASN": "割当て",
     "EXR": "権利行使"
   },
+  "txTypeShort": {
+    "DIV_CASH": "配当",
+    "DIV_REINVEST": "配当再投資",
+    "DIV_PAID": "配当支払い",
+    "BTO": "BTO",
+    "STO": "STO",
+    "BTC": "BTC",
+    "STC": "STC",
+    "EXP": "EXP",
+    "ASN": "ASN",
+    "EXR": "EXR"
+  },
   "counts": {
     "account_other": "口座 {{count}} 件",
     "transaction_other": "取引 {{count}} 件",

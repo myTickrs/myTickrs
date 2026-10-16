@@ -75,6 +75,18 @@
     "ASN": "Assegnata",
     "EXR": "Esercitata"
   },
+  "txTypeShort": {
+    "DIV_CASH": "Div.",
+    "DIV_REINVEST": "Div. reinvestito",
+    "DIV_PAID": "Div. pagato",
+    "BTO": "BTO",
+    "STO": "STO",
+    "BTC": "BTC",
+    "STC": "STC",
+    "EXP": "EXP",
+    "ASN": "ASN",
+    "EXR": "EXR"
+  },
   "counts": {
     "account_one": "{{count}} conto",
     "account_other": "{{count}} conti",

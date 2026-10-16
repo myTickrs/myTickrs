@@ -75,6 +75,18 @@
     "ASN": "被指派",
     "EXR": "已行权"
   },
+  "txTypeShort": {
+    "DIV_CASH": "股息",
+    "DIV_REINVEST": "股息再投资",
+    "DIV_PAID": "支付股息",
+    "BTO": "BTO",
+    "STO": "STO",
+    "BTC": "BTC",
+    "STC": "STC",
+    "EXP": "EXP",
+    "ASN": "ASN",
+    "EXR": "EXR"
+  },
   "counts": {
     "account_other": "{{count}} 个账户",
     "transaction_other": "{{count}} 笔交易",

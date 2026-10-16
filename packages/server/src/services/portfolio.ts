@@ -1,5 +1,5 @@
 import type { Ctx } from '../context.js';
-import { dec, type Dec, type Ledger, type PortfolioValuation } from '@tickrs/core';
+import { dec, type Dec, holdingValue, type Ledger, type PortfolioValuation } from '@tickrs/core';
 import {
   describeOption,
   type HoldingsByAccountResponse,
@@ -148,11 +148,7 @@ export async function getHoldingsByAccount(ctx: Ctx): Promise<HoldingsByAccountR
     accounts.map(async (account) => ({ account, ...(await valuePortfolio(ctx, account.id)) })),
   );
   const total = valued.reduce((acc, v) => acc.plus(v.valuation.marketValue), dec('0'));
-  const gross = valued.reduce((acc, { valuation: v }) => {
-    const values = [...v.stocks.map((s) => s.marketValueBase), ...v.options.map((o) => o.marketValueBase)];
-    return values.reduce((sum, value) => (dec(value).isPositive() ? sum.plus(value) : sum), acc);
-  }, dec('0'));
-  const weight = (valueBase: string) => (gross.isZero() ? '0' : dec(valueBase).div(gross).toFixed());
+  const weight = (v: PortfolioValuation) => (total.isZero() ? '0' : dec(v.marketValue).div(total).toFixed());
   const { baseCurrency } = await ctx.data.users.require();
 
   return {
@@ -164,11 +160,11 @@ export async function getHoldingsByAccount(ctx: Ctx): Promise<HoldingsByAccountR
       currency: account.currency,
       marketValue: valuation.marketValue,
       positionsValue: [...valuation.stocks, ...valuation.options]
-        .reduce((acc, p) => acc.plus(p.marketValue), dec('0'))
+        .reduce((acc, p) => acc.plus(holdingValue(p)), dec('0'))
         .toFixed(),
       positionCount: valuation.stocks.length + valuation.options.length,
       closedCount: ledger.stocks.size - valuation.stocks.length,
-      weight: weight(valuation.positionsValue),
+      weight: weight(valuation),
       realized: [...ledger.stocks.values(), ...ledger.options.values()]
         .reduce((acc, p) => acc.plus(p.realized), dec('0'))
         .toFixed(),

@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { isStockTrade } from '@tickrs/shared';
 import { type Column, DataTable } from '@tickrs/ui';
 import { Badge, Banner, Button, Card, Col, Field, Row, Select, Spinner, Text, TextLink } from '@tickrs/ui';
 import { DeleteTransactionDialog, useDeleteTransaction } from '../features/DeleteTransactionDialog.js';
@@ -13,6 +12,7 @@ import {
   formatMoneyWithCode,
   formatQuantity,
   rightLabel,
+  typeBadgeLabel,
   typeLabel,
 } from '../lib/format.js';
 import { useAccounts, useDebounced, useTransactions } from '../lib/queries.js';
@@ -22,6 +22,25 @@ function totalValue(tx: Transaction): string | null {
   const multiplier = tx.optionContract ? Number(tx.optionContract.multiplier) : 1;
   return String(Number(tx.quantity) * Number(tx.price) * multiplier);
 }
+
+const TYPE_TONES: Partial<Record<string, ComponentProps<typeof Badge>['tone']>> = {
+  BUY: 'positive',
+  BUY_TO_COVER: 'positive',
+  SELL: 'negative',
+  SELL_SHORT: 'negative',
+  BTO: 'positive',
+  BTC: 'positive',
+  STO: 'negative',
+  STC: 'negative',
+  DIV_CASH: 'info',
+  DIV_REINVEST: 'info',
+  DIV_PAID: 'warning',
+  BORROW_FEE: 'warning',
+  EXP: 'default',
+  ASN: 'default',
+  EXR: 'default',
+  SPLIT: 'secondary',
+};
 
 type SortKey = 'tradeDate' | 'symbol';
 type TxnSort = { key: SortKey; direction: 'asc' | 'desc' };
@@ -88,11 +107,8 @@ export function TransactionsPage({ onAdd }: { onAdd(): void }) {
       header: t('common.type'),
       render: (tx) => (
         <Row gap={1}>
-          {isStockTrade(tx.type) ? (
-            <Badge
-              label={typeLabel(tx.type)}
-              tone={tx.type === 'BUY' || tx.type === 'BUY_TO_COVER' ? 'positive' : 'negative'}
-            />
+          {tx.type in TYPE_TONES ? (
+            <Badge {...typeBadgeLabel(tx.type)} tone={TYPE_TONES[tx.type]} />
           ) : (
             <Text>{typeLabel(tx.type)}</Text>
           )}

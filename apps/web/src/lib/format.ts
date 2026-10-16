@@ -128,6 +128,28 @@ const isTxType = (type: string): type is TxType => (TX_TYPES as readonly string[
 
 export const typeLabel = (type: string): string => (isTxType(type) ? t(`txType.${type}`) : type);
 
+const SHORT_TYPES = [
+  'DIV_CASH',
+  'DIV_REINVEST',
+  'DIV_PAID',
+  'BTO',
+  'STO',
+  'BTC',
+  'STC',
+  'EXP',
+  'ASN',
+  'EXR',
+] as const;
+type ShortType = (typeof SHORT_TYPES)[number];
+const hasShortLabel = (type: string): type is ShortType => (SHORT_TYPES as readonly string[]).includes(type);
+
+export function typeBadgeLabel(type: string): { label: string; title?: string } {
+  const full = typeLabel(type);
+  if (!hasShortLabel(type)) return { label: full };
+  const label = t(`txTypeShort.${type}`);
+  return label === full ? { label } : { label, title: full };
+}
+
 export const rightLabel = (right: 'CALL' | 'PUT'): string =>
   t(right === 'CALL' ? 'common.call' : 'common.put');
 

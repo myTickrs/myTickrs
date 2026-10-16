@@ -24,6 +24,8 @@ import {
   joinList,
   rightLabel,
   toneOf,
+  typeBadgeLabel,
+  typeLabel,
 } from '../../lib/format.js';
 import { useStoredChoice } from '../../lib/preferences.js';
 import { useOptionPositions } from '../../lib/queries.js';
@@ -158,6 +160,18 @@ export function OpenPositions({
         </Col>
       ),
       text: (o) => o.description,
+    },
+    {
+      key: 'type',
+      header: t('common.type'),
+      nowrap: true,
+      render: (o) =>
+        o.side === 'SHORT' ? (
+          <Badge {...typeBadgeLabel('STO')} tone="negative" />
+        ) : (
+          <Badge {...typeBadgeLabel('BTO')} tone="positive" />
+        ),
+      text: (o) => typeLabel(o.side === 'SHORT' ? 'STO' : 'BTO'),
     },
     {
       key: 'side',

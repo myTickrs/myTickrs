@@ -95,6 +95,11 @@ export interface PortfolioValuation {
 const ZERO = new Dec(0);
 const ONE = new Dec(1);
 
+export function holdingValue(h: StockHolding | OptionHolding): Dec {
+  if (!('symbol' in h)) return dec(h.unrealized);
+  return h.side === 'LONG' ? dec(h.marketValue) : dec(h.rawCostBasis).plus(h.marketValue);
+}
+
 export function valueLedger(ledger: Ledger, prices: PriceLookup): PortfolioValuation {
   const base = ledger.baseCurrency;
   let estimated = false;
@@ -113,6 +118,8 @@ export function valueLedger(ledger: Ledger, prices: PriceLookup): PortfolioValua
   const toBase = (amount: Dec, currency: string) => amount.times(fxNow(currency).rate);
   const sumToBase = (totals: ReadonlyMap<string, Dec>) =>
     [...totals].reduce((acc, [currency, amount]) => acc.plus(toBase(amount, currency)), ZERO);
+
+  let marketValueSum = ZERO;
 
   let stocksValue = ZERO;
   let unrealizedStock = ZERO;
@@ -150,7 +157,10 @@ export function valueLedger(ledger: Ledger, prices: PriceLookup): PortfolioValua
     const marketValue = signedQty.times(price);
     const unrealized = side === 'LONG' ? marketValue.minus(cost) : cost.plus(marketValue);
     const marketValueBase = marketValue.times(fx.rate);
-    stocksValue = stocksValue.plus(marketValueBase);
+    stocksValue = stocksValue.plus(
+      (side === 'LONG' ? marketValue : rawCost.plus(marketValue)).times(fx.rate),
+    );
+    marketValueSum = marketValueSum.plus(marketValueBase);
     unrealizedStock = unrealizedStock.plus(unrealized.times(fx.rate));
     stocks.push({
       symbol: pos.symbol,
@@ -209,7 +219,8 @@ export function valueLedger(ledger: Ledger, prices: PriceLookup): PortfolioValua
     const marketValue = side === 'LONG' ? gross : gross.negated();
     const unrealized = side === 'LONG' ? marketValue.minus(amount) : amount.plus(marketValue);
     const marketValueBase = marketValue.times(fx.rate);
-    optionsValue = optionsValue.plus(marketValueBase);
+    optionsValue = optionsValue.plus(unrealized.times(fx.rate));
+    marketValueSum = marketValueSum.plus(marketValueBase);
     unrealizedOption = unrealizedOption.plus(unrealized.times(fx.rate));
     options.push({
       contractId: pos.contractId,
@@ -232,9 +243,9 @@ export function valueLedger(ledger: Ledger, prices: PriceLookup): PortfolioValua
     });
   }
 
-  const netContributions = sumToBase(ledger.netContributions);
   const positionsValue = stocksValue.plus(optionsValue);
   const marketValue = positionsValue;
+  const netContributions = sumToBase(ledger.netContributions).plus(positionsValue.minus(marketValueSum));
   const componentsTotal = unrealizedStock
     .plus(unrealizedOption)
     .plus(realizedStock)

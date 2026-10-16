@@ -6,6 +6,11 @@ export type ProviderButtonProvider = 'google' | 'microsoft';
 export const isBrandedProvider = (p: string): p is ProviderButtonProvider =>
   p === 'google' || p === 'microsoft';
 
+const COLORS = {
+  light: { fill: '#FFFFFF', border: '#747775', text: '#1F1F1F', hover: '#F8F9FA', focus: '#0B57D0' },
+  dark: { fill: '#131314', border: '#8E918F', text: '#E3E3E3', hover: '#232324', focus: '#A8C7FA' },
+} as const;
+
 function GoogleMark() {
   return (
     <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -55,31 +60,34 @@ export function ProviderButton({
     <MuiButtonBase
       onClick={onClick}
       disabled={disabled}
-      sx={{
-        width: '100%',
-        height: 40,
-        px: 1.5,
-        gap: 1.25,
-        borderRadius: 20,
-        border: '1px solid',
-        borderColor: '#747775',
-        backgroundColor: '#FFFFFF',
-        color: '#1F1F1F',
-        fontSize: 14,
-        fontWeight: 500,
-        letterSpacing: 0.25,
-        fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
-        transition: 'background-color 120ms, box-shadow 120ms',
-        '&:hover': {
-          backgroundColor: '#F8F9FA',
-          boxShadow: '0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)',
-        },
-        '&.Mui-focusVisible': {
-          outline: '2px solid',
-          outlineColor: '#0B57D0',
-          outlineOffset: 2,
-        },
-        '&.Mui-disabled': { opacity: 0.38 },
+      sx={(theme) => {
+        const c = COLORS[theme.palette.mode];
+        return {
+          width: '100%',
+          height: 40,
+          px: 1.5,
+          gap: 1.25,
+          borderRadius: 20,
+          border: '1px solid',
+          borderColor: c.border,
+          backgroundColor: c.fill,
+          color: c.text,
+          fontSize: 14,
+          fontWeight: 500,
+          letterSpacing: 0.25,
+          fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
+          transition: 'background-color 120ms, box-shadow 120ms',
+          '&:hover': {
+            backgroundColor: c.hover,
+            boxShadow: '0 1px 2px rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)',
+          },
+          '&.Mui-focusVisible': {
+            outline: '2px solid',
+            outlineColor: c.focus,
+            outlineOffset: 2,
+          },
+          '&.Mui-disabled': { opacity: 0.38 },
+        };
       }}
     >
       {provider === 'google' ? <GoogleMark /> : <MicrosoftMark />}

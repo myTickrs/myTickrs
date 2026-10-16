@@ -75,6 +75,18 @@
     "ASN": "배정됨",
     "EXR": "권리 행사됨"
   },
+  "txTypeShort": {
+    "DIV_CASH": "배당",
+    "DIV_REINVEST": "배당 재투자",
+    "DIV_PAID": "배당 지급",
+    "BTO": "BTO",
+    "STO": "STO",
+    "BTC": "BTC",
+    "STC": "STC",
+    "EXP": "EXP",
+    "ASN": "ASN",
+    "EXR": "EXR"
+  },
   "counts": {
     "account_other": "계좌 {{count}}개",
     "transaction_other": "거래 {{count}}건",
