@@ -59,6 +59,12 @@
       }
     },
     {
+      "files": ["**/test/**", "**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "unicorn/consistent-function-scoping": "off"
+      }
+    },
+    {
       "files": ["apps/web/src/**"],
       "rules": {
         "no-restricted-imports": [

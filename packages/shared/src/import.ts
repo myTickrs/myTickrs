@@ -331,7 +331,7 @@ export interface ImportConfig {
   structured: true;
   ai:
     | { status: 'unavailable' }
-    | { status: 'sign-in'; providers: string[]; noAccount?: string }
+    | { status: 'sign-in'; providers: string[]; noAccount?: string; signInFailed?: string }
     | ({ status: 'ready'; account?: string } & AiServiceConfig);
 }
 

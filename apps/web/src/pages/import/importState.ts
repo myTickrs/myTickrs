@@ -4,7 +4,7 @@ export interface FileEntry {
   key: string;
   name: string;
   kind: ImportFileKind | null;
-  status: 'reading' | 'read' | 'mapping' | 'failed';
+  status: 'reading' | 'read' | 'mapping' | 'signIn' | 'failed';
   error?: string;
   response?: ExtractResponse;
   prepared?: ImportFile;

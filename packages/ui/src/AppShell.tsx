@@ -15,7 +15,7 @@ import MuiTab from '@mui/material/Tab';
 import MuiTabs from '@mui/material/Tabs';
 import MuiToolbar from '@mui/material/Toolbar';
 import MuiTypography from '@mui/material/Typography';
-import type { ElementType, ReactNode } from 'react';
+import { useState, type ElementType, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { LanguageMenu } from './LanguageMenu.js';
 import { Logo } from './Logo.js';
@@ -43,13 +43,14 @@ const CONTACT_EMAIL = 'admin@mytickrs.com';
 
 export function Footer({ version }: { version?: string } = {}) {
   const t = useT();
+  const [year] = useState(() => new Date().getFullYear());
   return (
     <MuiBox
       component="footer"
       sx={{ borderTop: 1, borderColor: 'divider', py: 2, px: 2, textAlign: 'center' }}
     >
       <MuiTypography variant="body2" color="text.secondary">
-        © {new Date().getFullYear()}{' '}
+        © {year}{' '}
         <MuiLink href="https://mytickrs.com" color="inherit" target="_blank" rel="noopener noreferrer">
           mytickrs.com
         </MuiLink>

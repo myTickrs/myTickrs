@@ -71,7 +71,7 @@ export function apiRouter(store: Store, config: CryptoConfig, options: ApiRouter
   settingsRoutes(api, ctxOf);
   transactionRoutes(api, ctxOf);
   cloudSyncRoutes(api, ctxOf, options);
-  importRoutes(api, ctxOf, options.importAi);
+  importRoutes(api, ctxOf, options.importAi, options.logger);
   portfolioRoutes(api, ctxOf);
   optionRoutes(api, ctxOf);
   providerRoutes(api, ctxOf);

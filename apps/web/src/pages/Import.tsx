@@ -14,6 +14,7 @@ import {
   Badge,
   Banner,
   Button,
+  Card,
   StepCard,
   Col,
   FileDrop,
@@ -98,11 +99,23 @@ export function ImportPage() {
   const ai = config.data?.ai;
   const aiFilesLeft =
     ai?.status === 'ready' && ai.usage.limit != null ? Math.max(0, ai.usage.limit - ai.usage.used) : null;
-  useEffect(() => {
-    if (waitingForSignIn && ai?.status === 'ready') setWaitingForSignIn(false);
-  }, [waitingForSignIn, ai?.status]);
-
   const update = (key: string, patch: Partial<FileEntry>) => dispatch({ type: 'updateFile', key, patch });
+
+  useEffect(() => {
+    const ended = ai?.status === 'ready' || (ai?.status === 'sign-in' && ai.signInFailed != null);
+    if (!waitingForSignIn || !ended) return;
+    setWaitingForSignIn(false);
+    if (ai?.status !== 'ready') {
+      for (const kept of files.filter((f) => f.status === 'signIn')) {
+        update(kept.key, {
+          status: 'failed',
+          prepared: undefined,
+          error: t('import.aiNeeded', { name: kept.name }),
+        });
+      }
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitingForSignIn, ai]);
 
   const read = async (entry: FileEntry, prepared: ImportFile, how?: ReadHow) => {
     try {
@@ -158,6 +171,10 @@ export function ImportPage() {
           continue;
         }
         update(entry.key, { kind: prepared.kind });
+        if (prepared.kind === 'image' && ai?.status === 'sign-in') {
+          update(entry.key, { status: 'signIn', prepared: prepared.file });
+          continue;
+        }
         if (prepared.kind === 'image' && ai?.status !== 'ready') {
           update(entry.key, { status: 'failed', error: t('import.aiNeeded', { name: entry.name }) });
           continue;
@@ -172,6 +189,24 @@ export function ImportPage() {
     if (ai?.status === 'ready' && !aiNoticeAccepted()) setPending(() => () => void addFiles(picked));
     else void addFiles(picked);
   };
+
+  const waitingKey = files
+    .filter((f) => f.status === 'signIn')
+    .map((f) => f.key)
+    .join(',');
+  useEffect(() => {
+    if (ai?.status !== 'ready' || !waitingKey) return;
+    const waiting = files.filter((f) => f.status === 'signIn' && f.prepared);
+    const send = () => {
+      for (const f of waiting) {
+        update(f.key, { status: 'reading', error: undefined });
+        void read(f, f.prepared!);
+      }
+    };
+    if (aiNoticeAccepted()) send();
+    else setPending(() => send);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [ai?.status, waitingKey]);
 
   const confirmMapping = (entry: FileEntry, mapping: Mapping, save: boolean) => {
     if (!entry.prepared) return;
@@ -291,18 +326,19 @@ export function ImportPage() {
       rowIds: section.rows.map((r) => r.id),
     });
 
+  const bodyOf = (b: (typeof batches)[number], accountId: string) => ({
+    accountId,
+    importId: importIdFor(accountId),
+    openingDate: openingDates[b.currency] || reviews[b.currency]!.response.openingDate,
+    rows: b.rows.map((r) => ({ id: r.id, draft: r.draft, allowDuplicate: r.duplicate })),
+  });
+
   const run = async () => {
     setMessage(null);
     if (ticked.length === 0) {
       setMessage(t('import.nothingTicked'));
       return;
     }
-    const bodyOf = (b: (typeof batches)[number], accountId: string) => ({
-      accountId,
-      importId: importIdFor(accountId),
-      openingDate: openingDates[b.currency] || reviews[b.currency]!.response.openingDate,
-      rows: b.rows.map((r) => ({ id: r.id, draft: r.draft, allowDuplicate: r.duplicate })),
-    });
     const total = { imported: 0 };
     const saved = new Set<string>();
     try {
@@ -331,8 +367,6 @@ export function ImportPage() {
   const busy = files.some((f) => f.status === 'reading');
   const hasRows = sourceRows.length > 0;
   const showSignIn = ai != null && (ai.status === 'sign-in' || (ai.status === 'ready' && ai.account != null));
-  const first = showSignIn ? 2 : 1;
-  const signedIn = !showSignIn || ai?.status === 'ready';
 
   return (
     <Col gap={3}>
@@ -345,94 +379,97 @@ export function ImportPage() {
         </Banner>
       )}
       {showSignIn && ai && (
-        <StepCard step={1} title={t('import.steps.signIn')} done={ai.status === 'ready'}>
+        <Card title={t('import.steps.signIn')}>
           <AiStatus ai={ai} onWaitingForSignIn={setWaitingForSignIn} />
-        </StepCard>
+        </Card>
       )}
 
-      <StepCard step={first} title={t('import.steps.upload')} done={hasRows && !busy} upcoming={!signedIn}>
-        {!signedIn ? (
-          <Text muted>{t('import.steps.uploadLocked')}</Text>
-        ) : (
-          <Col gap={2}>
-            <FileDrop
-              label={t('import.drop')}
-              hint={t('import.dropHint')}
-              accept={ACCEPT}
-              multiple={IMPORT_FILES_AT_A_TIME > 1}
-              onFiles={onFiles}
-            />
-            {ai?.status === 'unavailable' && <Text muted>{t('import.aiUnavailable')}</Text>}
-            {ai?.status === 'ready' && (
-              <Col gap={1}>
-                {!showSignIn && <AiStatus ai={ai} onWaitingForSignIn={setWaitingForSignIn} />}
-                <Row gap={1} align="center" wrap>
-                  <Badge
-                    tone={aiFilesLeft === 0 ? 'negative' : 'info'}
-                    label={
-                      ai.usage.limit == null
-                        ? t('import.aiUsageUnlimited', { used: ai.usage.used })
-                        : t('import.aiUsage', { left: aiFilesLeft, limit: ai.usage.limit })
-                    }
-                  />
-                  <Text muted>{t('import.aiNotSaved')}</Text>
-                </Row>
-              </Col>
-            )}
-            {files.length > 0 && (
-              <Col gap={1}>
-                {files.map((f) => (
-                  <Row key={f.key} gap={1} align="center" justify="between">
-                    <Row gap={1} align="center" wrap>
-                      <Text>{f.name}</Text>
-                      {f.status === 'reading' && <Text muted>{t('import.fileReading')}</Text>}
-                      {f.status === 'read' && (
-                        <Badge tone="positive" label={t('import.fileRows', { count: f.rows.length })} />
-                      )}
-                      {f.status === 'read' && f.response?.totals && (
-                        <Text muted variant="caption">
-                          {totalsText(f.response.totals)}
-                        </Text>
-                      )}
-                      {f.status === 'mapping' && (
-                        <Badge tone="warning" label={t('import.fileNeedsMapping')} />
-                      )}
-                      {f.status === 'failed' && <Badge tone="negative" label={t('import.fileFailed')} />}
-                      {f.error && (
-                        <Text tone="negative" variant="caption">
-                          {f.error}
-                        </Text>
-                      )}
-                    </Row>
-                    <IconButton
-                      label={t('import.removeFile', { name: f.name })}
-                      onClick={() => removeFile(f.key)}
-                    >
-                      ✕
-                    </IconButton>
-                  </Row>
-                ))}
-              </Col>
-            )}
-            {files
-              .filter((f) => f.status === 'mapping' && f.response)
-              .map((f) => (
-                <MappingStep
-                  key={f.key}
-                  response={f.response!}
-                  busy={busy}
-                  aiFiles={ai?.status === 'ready' ? { left: aiFilesLeft, limit: ai.usage.limit } : undefined}
-                  onConfirm={(mapping, save) => confirmMapping(f, mapping, save)}
-                  onReadWithAi={() => readWithAi(f)}
+      <StepCard step={1} title={t('import.steps.upload')} done={hasRows && !busy}>
+        <Col gap={2}>
+          <FileDrop
+            label={t('import.drop')}
+            hint={t('import.dropHint')}
+            accept={ACCEPT}
+            multiple={IMPORT_FILES_AT_A_TIME > 1}
+            onFiles={onFiles}
+          />
+          {ai?.status === 'unavailable' && <Text muted>{t('import.aiUnavailable')}</Text>}
+          {ai?.status === 'ready' && (
+            <Col gap={1}>
+              {!showSignIn && <AiStatus ai={ai} onWaitingForSignIn={setWaitingForSignIn} />}
+              <Row gap={1} align="center" wrap>
+                <Badge
+                  tone={aiFilesLeft === 0 ? 'negative' : 'info'}
+                  label={
+                    ai.usage.limit == null
+                      ? t('import.aiUsageUnlimited', { used: ai.usage.used })
+                      : t('import.aiUsage', { left: aiFilesLeft, limit: ai.usage.limit })
+                  }
                 />
+                <Text muted>{t('import.aiNotSaved')}</Text>
+              </Row>
+            </Col>
+          )}
+          {files.length > 0 && (
+            <Col gap={1}>
+              {files.map((f) => (
+                <Row key={f.key} gap={1} align="center" justify="between">
+                  <Row gap={1} align="center" wrap>
+                    <Text>{f.name}</Text>
+                    {f.status === 'reading' && <Text muted>{t('import.fileReading')}</Text>}
+                    {f.status === 'read' && (
+                      <Badge tone="positive" label={t('import.fileRows', { count: f.rows.length })} />
+                    )}
+                    {f.status === 'read' && f.response?.totals && (
+                      <Text muted variant="caption">
+                        {totalsText(f.response.totals)}
+                      </Text>
+                    )}
+                    {f.status === 'mapping' && <Badge tone="warning" label={t('import.fileNeedsMapping')} />}
+                    {f.status === 'signIn' && (
+                      <Badge tone="warning" label={t('import.fileWaitingForSignIn')} />
+                    )}
+                    {f.status === 'signIn' && (
+                      <Text muted variant="caption">
+                        {t('import.screenshotSignIn', { name: f.name })}
+                      </Text>
+                    )}
+                    {f.status === 'failed' && <Badge tone="negative" label={t('import.fileFailed')} />}
+                    {f.error && (
+                      <Text tone="negative" variant="caption">
+                        {f.error}
+                      </Text>
+                    )}
+                  </Row>
+                  <IconButton
+                    label={t('import.removeFile', { name: f.name })}
+                    onClick={() => removeFile(f.key)}
+                  >
+                    ✕
+                  </IconButton>
+                </Row>
               ))}
-            {busy && !hasRows && <Spinner label={t('import.fileReading')} />}
-          </Col>
-        )}
+            </Col>
+          )}
+          {files
+            .filter((f) => f.status === 'mapping' && f.response)
+            .map((f) => (
+              <MappingStep
+                key={f.key}
+                response={f.response!}
+                busy={busy}
+                aiFiles={ai?.status === 'ready' ? { left: aiFilesLeft, limit: ai.usage.limit } : undefined}
+                signInHint={ai?.status === 'sign-in'}
+                onConfirm={(mapping, save) => confirmMapping(f, mapping, save)}
+                onReadWithAi={() => readWithAi(f)}
+              />
+            ))}
+          {busy && !hasRows && <Spinner label={t('import.fileReading')} />}
+        </Col>
       </StepCard>
 
       <StepCard
-        step={first + 1}
+        step={2}
         title={t('import.steps.review')}
         upcoming={!hasRows}
         action={reviewing ? <Spinner /> : undefined}
@@ -468,7 +505,7 @@ export function ImportPage() {
       </StepCard>
 
       <StepCard
-        step={first + 2}
+        step={3}
         title={t('import.steps.save')}
         done={result != null}
         upcoming={!hasRows && result == null}

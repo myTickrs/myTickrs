@@ -18,6 +18,7 @@ import {
   type ReviewResponse,
   type SourceRow,
 } from '@tickrs/shared';
+import type { Logger } from 'pino';
 import type { Ctx } from '../context.js';
 import { AppError } from '../errors.js';
 import type { Uuid } from '../model.js';
@@ -66,9 +67,10 @@ export async function extractFile(
   ctx: Ctx,
   ai: ImportAi | undefined,
   request: ExtractRequest,
+  logger?: Pick<Logger, 'warn'>,
 ): Promise<ExtractResponse> {
   const { baseCurrency } = await ctx.data.users.require();
-  const response = await readFile(ctx, ai, request, baseCurrency);
+  const response = await readFile(ctx, ai, request, baseCurrency, logger);
   return { ...response, rows: await withListingCurrency(ctx, response.rows, baseCurrency) };
 }
 
@@ -100,6 +102,7 @@ async function readFile(
   ai: ImportAi | undefined,
   request: ExtractRequest,
   baseCurrency: string,
+  logger: Pick<Logger, 'warn'> | undefined,
 ): Promise<ExtractResponse> {
   const { file } = request;
   const kind = importFileKind(file.name, file.mediaType);
@@ -213,15 +216,18 @@ async function readFile(
   let source: ExtractResponse['mappingSource'] = 'guess';
   const config =
     ai && ctx.principal.entitlements.has('ai-import') ? await ai.config(ctx).catch(() => null) : null;
-  if (
-    !isCompleteMapping(mapping.fields) &&
-    config?.status === 'ready' &&
-    (config.usage.limit == null || config.usage.used < config.usage.limit)
-  ) {
-    const proposed = mappingSchema.safeParse(await ai!.proposeMapping(ctx, sampleOf(table), context));
-    if (proposed.success) {
-      mapping = { ...proposed.data, format: table.format, recordPath: table.recordPath };
-      source = 'ai';
+  if (config?.status === 'ready') {
+    try {
+      const proposed = mappingSchema.safeParse(await ai!.proposeMapping(ctx, sampleOf(table), context));
+      if (
+        proposed.success &&
+        (isCompleteMapping(proposed.data.fields) || !isCompleteMapping(mapping.fields))
+      ) {
+        mapping = { ...proposed.data, format: table.format, recordPath: table.recordPath };
+        source = 'ai';
+      }
+    } catch (err) {
+      logger?.warn({ err, file: file.name }, 'The AI could not propose a column mapping; using the guess');
     }
   }
   return {

@@ -1,9 +1,10 @@
 import type { ImportConfig } from '@tickrs/shared';
 import { Banner, Button, Col, Dialog, isBrandedProvider, ProviderButton, Text } from '@tickrs/ui';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useT } from '../../i18n.js';
 import { errorText } from '../../lib/api.js';
-import { startImportSignIn, useImportSignOut } from '../../lib/queries.js';
+import { keys, startImportSignIn, useImportSignOut } from '../../lib/queries.js';
 import { openSignInWindow } from '../../lib/sign-in-window.js';
 
 const PROVIDER_NAMES: Record<string, string> = { google: 'Google', microsoft: 'Microsoft' };
@@ -17,8 +18,11 @@ export function AiStatus({
 }) {
   const t = useT();
   const signOut = useImportSignOut();
+  const client = useQueryClient();
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const failed = waiting && ai.status === 'sign-in' ? ai.signInFailed : undefined;
 
   const signIn = async (provider: string) => {
     setError(null);
@@ -26,6 +30,11 @@ export function AiStatus({
     try {
       const { authorizeUrl } = await startImportSignIn(provider);
       if (popup) popup.location.href = authorizeUrl;
+      client.setQueryData<ImportConfig>(keys.importConfig, (config) =>
+        config?.ai.status === 'sign-in'
+          ? { ...config, ai: { ...config.ai, signInFailed: undefined } }
+          : config,
+      );
       setWaiting(true);
       onWaitingForSignIn(true);
     } catch (e) {
@@ -39,7 +48,7 @@ export function AiStatus({
   if (ai.status === 'sign-in') {
     return (
       <Col gap={1}>
-        <Text>{t('import.aiSignIn')}</Text>
+        <Text>{t('import.signInOptional')}</Text>
         {ai.noAccount && <Banner tone="warning">{t('import.aiNoAccount', { account: ai.noAccount })}</Banner>}
         <div
           style={{
@@ -62,8 +71,8 @@ export function AiStatus({
             );
           })}
         </div>
-        {waiting && <Banner tone="info">{t('import.waitingForSignIn')}</Banner>}
-        {error && <Banner tone="error">{error}</Banner>}
+        {waiting && !failed && <Banner tone="info">{t('import.waitingForSignIn')}</Banner>}
+        {(error ?? failed) && <Banner tone="error">{error ?? failed}</Banner>}
       </Col>
     );
   }

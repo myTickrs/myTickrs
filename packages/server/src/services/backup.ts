@@ -141,15 +141,20 @@ export function readBackupFile(text: string): BackupFile {
   return file;
 }
 
+function unique(what: string, keys: readonly string[]): Set<string> {
+  const seen = new Set<string>();
+  for (const key of keys) {
+    if (seen.has(key)) throw invalid(`This backup is damaged: ${what} ${key} appears twice.`);
+    seen.add(key);
+  }
+  return seen;
+}
+
+function need(ok: boolean, message: string): void {
+  if (!ok) throw invalid(`This backup is damaged: ${message}.`);
+}
+
 function checkReferences(file: BackupFile): void {
-  const unique = (what: string, keys: readonly string[]) => {
-    const seen = new Set<string>();
-    for (const key of keys) {
-      if (seen.has(key)) throw invalid(`This backup is damaged: ${what} ${key} appears twice.`);
-      seen.add(key);
-    }
-    return seen;
-  };
   const currencies = unique(
     'currency',
     file.currencies.map((c) => c.code),
@@ -191,9 +196,6 @@ function checkReferences(file: BackupFile): void {
     file.contractAdjustments.map((a) => a.optionContractId),
   );
 
-  const need = (ok: boolean, message: string) => {
-    if (!ok) throw invalid(`This backup is damaged: ${message}.`);
-  };
   need(
     currencies.has(file.settings.baseCurrency),
     `the base currency ${file.settings.baseCurrency} is not in its currency list`,

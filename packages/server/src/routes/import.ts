@@ -7,6 +7,7 @@ import {
   reviewRequestSchema,
 } from '@tickrs/shared';
 import express, { type Router } from 'express';
+import type { Logger } from 'pino';
 import { AppError } from '../errors.js';
 import { type CtxOf, parse } from '../http.js';
 import { requireFeature } from '../identity.js';
@@ -14,7 +15,12 @@ import type { ImportAi } from '../import/ai.js';
 import { checkImport, commitImport, extractFile, importConfig, reviewRows } from '../services/import.js';
 import { signInMethod } from './cloud-sync.js';
 
-export function importRoutes(api: Router, ctxOf: CtxOf, importAi: ImportAi | undefined): void {
+export function importRoutes(
+  api: Router,
+  ctxOf: CtxOf,
+  importAi: ImportAi | undefined,
+  logger?: Logger,
+): void {
   const importBody = express.json({ type: IMPORT_MEDIA_TYPE, limit: IMPORT_MAX_REQUEST_BYTES });
 
   api.get('/import/config', async (req, res) => {
@@ -22,7 +28,7 @@ export function importRoutes(api: Router, ctxOf: CtxOf, importAi: ImportAi | und
   });
 
   api.post('/import/extract', importBody, async (req, res) => {
-    res.json(await extractFile(ctxOf(req), importAi, parse(extractRequestSchema, req.body)));
+    res.json(await extractFile(ctxOf(req), importAi, parse(extractRequestSchema, req.body), logger));
   });
 
   api.post('/import/review', importBody, async (req, res) => {

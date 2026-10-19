@@ -10,7 +10,10 @@ const SYNONYMS: Record<MappingField, string[]> = {
   symbol: ['symbol', 'ticker', 'instrument', 'security', 'securitysymbol', 'stocksymbol'],
   quantity: ['quantity', 'qty', 'shares', 'numberofshares', 'contracts', 'units'],
   averagePrice: [
+    'costbasisprice',
+    'costbasispershare',
     'averageprice',
+    'averageentryprice',
     'avgprice',
     'averagecost',
     'avgcost',
@@ -44,6 +47,15 @@ const SYNONYMS: Record<MappingField, string[]> = {
   right: ['right', 'callput', 'putcall', 'optiontype', 'callorput'],
 };
 
+const EXACT_ONLY: Partial<Record<MappingField, string[]>> = {
+  quantity: ['position'],
+};
+
+const NOT_CONTAINING: Partial<Record<MappingField, RegExp>> = {
+  costBasis: /price|pershare|unit/,
+  realizedPnl: /unrealized/,
+};
+
 export function guessFields(columns: readonly string[]): Mapping['fields'] {
   const normalized = columns.map((h) => ({ header: h, key: normalizeHeader(h) }));
   const fields: Mapping['fields'] = {};
@@ -52,12 +64,16 @@ export function guessFields(columns: readonly string[]): Mapping['fields'] {
   for (const pass of ['exact', 'contains'] as const) {
     for (const field of MAPPING_FIELDS) {
       if (fields[field]) continue;
-      for (const synonym of SYNONYMS[field]) {
+      const synonyms =
+        pass === 'exact' ? [...SYNONYMS[field], ...(EXACT_ONLY[field] ?? [])] : SYNONYMS[field];
+      for (const synonym of synonyms) {
         const hit = normalized.find(
           (h) =>
             !taken.has(h.header) &&
             h.key.length > 0 &&
-            (pass === 'exact' ? h.key === synonym : h.key.includes(synonym)),
+            (pass === 'exact'
+              ? h.key === synonym
+              : h.key.includes(synonym) && !NOT_CONTAINING[field]?.test(h.key)),
         );
         if (hit) {
           fields[field] = hit.header;

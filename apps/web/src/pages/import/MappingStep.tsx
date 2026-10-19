@@ -16,12 +16,14 @@ export function MappingStep({
   response,
   busy,
   aiFiles,
+  signInHint,
   onConfirm,
   onReadWithAi,
 }: {
   response: ExtractResponse;
   busy: boolean;
   aiFiles?: { left: number | null; limit: number | null };
+  signInHint?: boolean;
   onConfirm(mapping: Mapping, remember: boolean): void;
   onReadWithAi(): void;
 }) {
@@ -47,6 +49,7 @@ export function MappingStep({
         <Text muted>
           {t('import.mappingIntro')}{' '}
           {response.mappingSource === 'ai' ? t('import.mappingFromAi') : t('import.mappingFromGuess')}
+          {signInHint && response.mappingSource === 'guess' && <> {t('import.mappingSignInHint')}</>}
         </Text>
         <Row gap={2} wrap>
           {MAPPING_FIELDS.map((field) => (

@@ -47,6 +47,7 @@ export class RemoteImportAi implements ImportAi {
       complete: (callback) => this.#complete(callback),
       signOut: () => {
         this.#token = null;
+        this.#signInFailed = null;
         this.#stopRelay?.();
         this.#stopRelay = undefined;
       },
@@ -64,12 +65,14 @@ export class RemoteImportAi implements ImportAi {
   }
 
   #noAccount: string | null = null;
+  #signInFailed: string | null = null;
 
   #signIn(): ImportConfig['ai'] {
     return {
       status: 'sign-in',
       providers: this.#providers(),
       ...(this.#noAccount ? { noAccount: this.#noAccount } : {}),
+      ...(this.#signInFailed ? { signInFailed: this.#signInFailed } : {}),
     };
   }
 
@@ -121,6 +124,7 @@ export class RemoteImportAi implements ImportAi {
     const client = this.deps.config.providers[provider as SignInProvider];
     if (!client)
       throw new AppError('VALIDATION_FAILED', 422, `Signing in with ${provider} is not set up here`);
+    this.#signInFailed = null;
     if (method.kind === 'relay')
       return this.#startRelay(provider as SignInProvider, method.instance, refusal);
     const now = this.deps.now().getTime();
@@ -137,6 +141,7 @@ export class RemoteImportAi implements ImportAi {
     this.#stopRelay = pollRelay(this.deps, relay, (result) => {
       this.#stopRelay = undefined;
       if (result.kind === 'failed') {
+        this.#signInFailed = result.message;
         this.deps.logger?.warn({ reason: result.message }, 'AI import sign-in failed');
         return;
       }

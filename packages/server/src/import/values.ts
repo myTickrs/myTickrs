@@ -76,6 +76,12 @@ function splitDate(
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(text);
   if (iso) return { iso: `${iso[1]}-${iso[2]!.padStart(2, '0')}-${iso[3]!.padStart(2, '0')}` };
 
+  const compact = /^(\d{4})(\d{2})(\d{2})$/.exec(text);
+  if (compact) {
+    const [year, month, day] = [Number(compact[1]), Number(compact[2]), Number(compact[3])];
+    return valid(year, month, day) ? { iso: format(year, month, day) } : null;
+  }
+
   const named =
     /^(\d{1,2})[ \-/]*([a-z]{3,})[ \-/,]*(\d{2,4})$|^([a-z]{3,})[ \-/]*(\d{1,2})[ \-/,]*(\d{2,4})$/i.exec(
       text,
