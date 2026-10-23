@@ -154,24 +154,35 @@ export async function getHoldingsByAccount(ctx: Ctx): Promise<HoldingsByAccountR
   return {
     baseCurrency,
     marketValue: total.toFixed(),
-    accounts: valued.map(({ account, ledger, valuation }) => ({
-      accountId: account.id,
-      accountName: account.name,
-      currency: account.currency,
-      marketValue: valuation.marketValue,
-      positionsValue: [...valuation.stocks, ...valuation.options]
-        .reduce((acc, p) => acc.plus(holdingValue(p)), dec('0'))
-        .toFixed(),
-      positionCount: valuation.stocks.length + valuation.options.length,
-      closedCount: ledger.stocks.size - valuation.stocks.length,
-      weight: weight(valuation),
-      realized: [...ledger.stocks.values(), ...ledger.options.values()]
-        .reduce((acc, p) => acc.plus(p.realized), dec('0'))
-        .toFixed(),
-      unrealized: [...valuation.stocks, ...valuation.options]
-        .reduce((acc, p) => acc.plus(p.unrealized), dec('0'))
-        .toFixed(),
-    })),
+    accounts: valued.map(({ account, ledger, valuation }) => {
+      const realized = [...ledger.stocks.values(), ...ledger.options.values()].reduce(
+        (acc, p) => acc.plus(p.realized),
+        dec('0'),
+      );
+      const unrealized = [...valuation.stocks, ...valuation.options].reduce(
+        (acc, p) => acc.plus(p.unrealized),
+        dec('0'),
+      );
+      const income = [...ledger.stocks.values()].reduce(
+        (acc, p) => acc.plus(p.dividends).plus(p.shortCosts),
+        dec('0'),
+      );
+      return {
+        accountId: account.id,
+        accountName: account.name,
+        currency: account.currency,
+        marketValue: valuation.marketValue,
+        positionsValue: [...valuation.stocks, ...valuation.options]
+          .reduce((acc, p) => acc.plus(holdingValue(p)), dec('0'))
+          .toFixed(),
+        positionCount: valuation.stocks.length + valuation.options.length,
+        closedCount: ledger.stocks.size - valuation.stocks.length,
+        weight: weight(valuation),
+        realized: realized.toFixed(),
+        unrealized: unrealized.toFixed(),
+        totalPl: realized.plus(unrealized).plus(income).toFixed(),
+      };
+    }),
     hasEstimatedValues: valued.some((v) => v.valuation.hasEstimatedValues),
   };
 }

@@ -294,6 +294,16 @@ export function HoldingsCard({ baseCurrency }: { baseCurrency: string }) {
         </Text>
       ),
     },
+    {
+      key: 'totalPl',
+      header: t('common.totalPl'),
+      align: 'right',
+      render: (r) => (
+        <Text inline tone={toneOf(r.totalPl)}>
+          {formatSignedMoney(r.totalPl, r.currency)}
+        </Text>
+      ),
+    },
   ];
 
   const action = (

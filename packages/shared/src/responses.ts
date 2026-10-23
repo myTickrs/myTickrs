@@ -156,6 +156,7 @@ export interface AccountHolding {
   weight: string;
   realized: string;
   unrealized: string;
+  totalPl: string;
 }
 
 export interface HoldingsByAccountResponse {
@@ -480,6 +481,12 @@ export interface StockQuote {
   estimated: boolean;
 }
 
+export interface StockPnlSplit {
+  total: string;
+  stock: string;
+  option: string;
+}
+
 export interface StockChartResponse {
   symbol: string;
   name: string;
@@ -495,10 +502,10 @@ export interface StockChartResponse {
     shares: string;
     side: PositionSide | null;
     averagePrice: string | null;
-    realized: string;
-    dividends: string;
+    realized: StockPnlSplit;
+    unrealized: StockPnlSplit;
     shortCosts: string;
-    dayChange: string | null;
+    dayChange: { total: string; stock: string | null; option: string | null } | null;
   } | null;
   pendingHistory: boolean;
 }

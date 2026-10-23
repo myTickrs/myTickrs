@@ -64,7 +64,7 @@ export function resolveMark(date: IsoDate, inputs: MarkInputs): ResolvedMark {
   let best: { value: Dec; source: 'MANUAL' | 'QUOTE' | 'TRADE'; date: IsoDate } | null = null;
   const consider = (value: Dec | null, source: 'MANUAL' | 'QUOTE' | 'TRADE', d: IsoDate) => {
     if (value == null || d > date) return;
-    if (!best || d > best.date || (d === best.date && PRIORITY[source] > PRIORITY[best.source])) {
+    if (!best || d > best.date || (d === best.date && PRIORITY[source] >= PRIORITY[best.source])) {
       best = { value, source, date: d };
     }
   };

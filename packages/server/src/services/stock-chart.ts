@@ -1,13 +1,18 @@
 import type { Ctx } from '../context.js';
-import { addDays, dec, positionSide, openQty, replay } from '@tickrs/core';
-import { type ChartMarker, describeOption, type StockChartResponse, type StrikeLine } from '@tickrs/shared';
+import { addDays, type Dec, dec, positionSide, openQty } from '@tickrs/core';
+import {
+  type ChartMarker,
+  describeOption,
+  type StockChartResponse,
+  type StockPnlSplit,
+  type StrikeLine,
+} from '@tickrs/shared';
 import type { Uuid } from '../model.js';
 import { AppError } from '../errors.js';
 import { ensureHistory } from './market-data.js';
-import { loadLedgerContext } from './ledger-context.js';
 import { type Range, rangeStart } from './performance.js';
 import { loadRegistry } from './markets.js';
-import { dayQuote, isStalePrice } from './valuation.js';
+import { dayQuote, isStalePrice, positionDayChanges, valuePortfolio } from './valuation.js';
 
 const STOCK_MARKER_KIND: Partial<Record<string, 'BUY' | 'SELL'>> = {
   BUY: 'BUY',
@@ -15,6 +20,14 @@ const STOCK_MARKER_KIND: Partial<Record<string, 'BUY' | 'SELL'>> = {
   SELL: 'SELL',
   SELL_SHORT: 'SELL',
 };
+
+const sum = (amounts: (string | Dec)[]) => amounts.reduce<Dec>((acc, a) => acc.plus(a), dec('0'));
+
+const split = (stock: Dec, option: Dec): StockPnlSplit => ({
+  total: stock.plus(option).toFixed(),
+  stock: stock.toFixed(),
+  option: option.toFixed(),
+});
 
 export async function getStockChart(
   ctx: Ctx,
@@ -26,7 +39,9 @@ export async function getStockChart(
   const security = await data.securities.find(upper);
   if (!security) throw new AppError('NOT_FOUND', 404, `No security "${upper}"`);
 
-  const ledgerCtx = await loadLedgerContext(data, options.accountId ? { accountId: options.accountId } : {});
+  const { ledgerCtx, ledger, valuation, previous } = await valuePortfolio(ctx, options.accountId, {
+    previousClose: true,
+  });
   const mine = ledgerCtx.rows.filter((r) => r.symbol === upper);
   const today = ctx.clock.today();
   const first = mine[0]?.tradeDate ?? today;
@@ -81,17 +96,42 @@ export async function getStockChart(
       };
     });
 
-  const ledger = replay(ledgerCtx.txns, ledgerCtx.opts);
   const position = ledger.stocks.get(upper);
   const shares = position ? openQty(position.lots) : dec('0');
   const signedShares = position && positionSide(position.lots) === 'SHORT' ? shares.negated() : shares;
   const averagePrice = position && !shares.isZero() ? position.netInvested.div(signedShares) : null;
 
+  const optionPositions = [...ledger.options.values()].filter((p) => p.underlying === upper);
+  const realized = split(
+    position ? position.realized.plus(position.dividends) : dec('0'),
+    sum(optionPositions.map((p) => p.realized)),
+  );
+  const unrealized = split(
+    sum(valuation.stocks.filter((s) => s.symbol === upper).map((s) => s.unrealized)),
+    sum(valuation.options.filter((o) => o.underlying === upper).map((o) => o.unrealized)),
+  );
+
+  const stockDayChange = quote?.change != null && !shares.isZero() ? signedShares.times(quote.change) : null;
+  const openOptions = valuation.options.filter((o) => o.underlying === upper);
+  const optionMoves = positionDayChanges(valuation, previous!);
+  const optionDayChange =
+    openOptions.length > 0
+      ? sum(openOptions.map((o) => optionMoves.option(o.contractId, o.marketValue).amount))
+      : null;
+  const dayChange =
+    stockDayChange || optionDayChange
+      ? {
+          total: (stockDayChange ?? dec('0')).plus(optionDayChange ?? dec('0')).toFixed(),
+          stock: stockDayChange?.toFixed() ?? null,
+          option: optionDayChange?.toFixed() ?? null,
+        }
+      : null;
+
   const strikes: StrikeLine[] = [];
-  for (const pos of ledger.options.values()) {
+  for (const pos of optionPositions) {
     const side = positionSide(pos.lots);
     const contract = ledgerCtx.contracts.get(pos.contractId);
-    if (!side || !contract || contract.underlying !== upper || openQty(pos.lots).isZero()) continue;
+    if (!side || !contract || openQty(pos.lots).isZero()) continue;
     strikes.push({
       contractId: pos.contractId,
       price: contract.strike,
@@ -117,18 +157,18 @@ export async function getStockChart(
     markers,
     strikes,
     quote,
-    position: position
-      ? {
-          shares: signedShares.toFixed(),
-          side: positionSide(position.lots),
-          averagePrice: averagePrice?.toFixed() ?? null,
-          realized: position.realized.toFixed(),
-          dividends: position.dividends.toFixed(),
-          shortCosts: position.shortCosts.toFixed(),
-          dayChange:
-            quote?.change != null && !shares.isZero() ? signedShares.times(quote.change).toFixed() : null,
-        }
-      : null,
+    position:
+      position || optionPositions.length > 0
+        ? {
+            shares: signedShares.toFixed(),
+            side: position ? positionSide(position.lots) : null,
+            averagePrice: averagePrice?.toFixed() ?? null,
+            realized,
+            unrealized,
+            shortCosts: position?.shortCosts.toFixed() ?? '0',
+            dayChange,
+          }
+        : null,
     pendingHistory: history.pendingSymbols.length > 0,
   };
 }

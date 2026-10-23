@@ -16,6 +16,11 @@ This is the source-available **desktop edition**:
 - **Your data stays on your computer.** Everything is kept in one SQLite file on your own machine.
   There is no account, no sign-in, no telemetry and no server of ours in between.
 
+**Prefer nothing to install?** There is also an optional **myTickrs cloud** app that runs in your
+browser, with the same ledger and sign-in with Google or Microsoft. See
+[mytickrs.com](https://mytickrs.com). The desktop edition works fully without it, and it can also
+[sync with a cloud account](#-your-data-your-machine) if you want both.
+
 > myTickrs is a record-keeping tool. It does not place trades, connect to brokers for execution,
 > or give investment advice.
 

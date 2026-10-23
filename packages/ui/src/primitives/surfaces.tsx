@@ -84,6 +84,8 @@ export function StepCard({
   );
 }
 
+export type StatLine = string | { label: string; value: string; tone?: Tone };
+
 export function StatTile({
   label,
   value,
@@ -94,7 +96,7 @@ export function StatTile({
   label: string;
   value: string;
   tone?: Tone;
-  sub?: string;
+  sub?: StatLine | readonly StatLine[];
   action?: ReactNode;
 }) {
   return (
@@ -109,10 +111,23 @@ export function StatTile({
         <MuiTypography variant="h6" sx={{ color: TONE_COLOR[tone], mt: 0.5 }}>
           {value}
         </MuiTypography>
-        {sub && (
-          <MuiTypography variant="caption" color="text.secondary">
-            {sub}
-          </MuiTypography>
+        {(Array.isArray(sub) ? sub : sub ? [sub] : []).map((line: StatLine, i) =>
+          typeof line === 'string' ? (
+            <MuiTypography key={i} variant="caption" color="text.secondary" component="div">
+              {line}
+            </MuiTypography>
+          ) : (
+            <MuiTypography key={i} variant="caption" color="text.secondary" component="div">
+              {line.label}{' '}
+              <MuiTypography
+                variant="caption"
+                component="span"
+                sx={{ color: TONE_COLOR[line.tone ?? 'default'] }}
+              >
+                {line.value}
+              </MuiTypography>
+            </MuiTypography>
+          ),
         )}
       </MuiCardContent>
     </MuiCard>

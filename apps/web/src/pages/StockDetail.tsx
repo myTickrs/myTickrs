@@ -235,25 +235,67 @@ export function StockDetailPage() {
       {position && (
         <Row gap={2} wrap>
           <StatTile label={t('stock.shares')} value={formatQuantity(position.shares)} />
-          {Number(position.shares) !== 0 && (
+          {(Number(position.shares) !== 0 || chart.data.strikes.length > 0) && (
             <StatTile
               label={t('stock.dayChange')}
-              value={formatSignedMoney(position.dayChange, currency)}
-              tone={toneOf(position.dayChange)}
+              value={formatSignedMoney(position.dayChange?.total, currency)}
+              tone={toneOf(position.dayChange?.total)}
               sub={
-                position.dayChange != null && quote?.change != null
-                  ? t('stock.dayChangeSub', { change: formatSignedMoney(quote.change, currency) })
+                position.dayChange
+                  ? [
+                      ...(Number(position.shares) !== 0
+                        ? [
+                            {
+                              label: t('stock.pnlStock'),
+                              value:
+                                position.dayChange.stock != null && quote?.change != null
+                                  ? t('stock.dayChangeStock', {
+                                      amount: formatSignedMoney(position.dayChange.stock, currency),
+                                      change: formatSignedMoney(quote.change, currency),
+                                    })
+                                  : t('stock.noPreviousClose'),
+                              tone: toneOf(position.dayChange.stock),
+                            },
+                          ]
+                        : []),
+                      ...(position.dayChange.option != null
+                        ? [
+                            {
+                              label: t('stock.pnlOption'),
+                              value: formatSignedMoney(position.dayChange.option, currency),
+                              tone: toneOf(position.dayChange.option),
+                            },
+                          ]
+                        : []),
+                    ]
                   : t('stock.noPreviousClose')
               }
             />
           )}
           <StatTile label={t('stock.averagePrice')} value={formatMoney(position.averagePrice, currency, 4)} />
-          <StatTile
-            label={t('common.realized')}
-            value={formatSignedMoney(position.realized, currency)}
-            tone={toneOf(position.realized)}
-          />
-          <StatTile label={t('stock.dividends')} value={formatSignedMoney(position.dividends, currency)} />
+          {(
+            [
+              ['realized', t('common.realized')],
+              ['unrealized', t('common.unrealized')],
+            ] as const
+          ).map(([key, label]) => (
+            <StatTile
+              key={key}
+              label={label}
+              value={formatSignedMoney(position[key].total, currency)}
+              tone={toneOf(position[key].total)}
+              sub={(
+                [
+                  ['stock', t('stock.pnlStock')],
+                  ['option', t('stock.pnlOption')],
+                ] as const
+              ).map(([part, partLabel]) => ({
+                label: partLabel,
+                value: formatSignedMoney(position[key][part], currency),
+                tone: toneOf(position[key][part]),
+              }))}
+            />
+          ))}
           {Number(position.shortCosts) !== 0 && (
             <StatTile
               label={t('stock.shortCosts')}
