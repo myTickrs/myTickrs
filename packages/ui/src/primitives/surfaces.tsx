@@ -1,4 +1,5 @@
 import CheckIcon from '@mui/icons-material/Check';
+import MenuIcon from '@mui/icons-material/Menu';
 import MuiBox from '@mui/material/Box';
 import MuiCard from '@mui/material/Card';
 import MuiCardContent from '@mui/material/CardContent';
@@ -6,11 +7,17 @@ import MuiDialog from '@mui/material/Dialog';
 import MuiDialogActions from '@mui/material/DialogActions';
 import MuiDialogContent from '@mui/material/DialogContent';
 import MuiDialogTitle from '@mui/material/DialogTitle';
+import MuiIconButton from '@mui/material/IconButton';
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 import MuiStack from '@mui/material/Stack';
 import MuiTab from '@mui/material/Tab';
 import MuiTabs from '@mui/material/Tabs';
 import MuiTypography from '@mui/material/Typography';
-import type { FormEvent, ReactNode } from 'react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useT } from '../messages.js';
 import { TONE_COLOR, type Tone } from './tone.js';
 
 export function Card({
@@ -180,11 +187,15 @@ export function Tabs<T extends string>({
   value,
   onChange,
   tabs,
+  menuOnPhone,
 }: {
   value: T;
   onChange(value: T): void;
   tabs: readonly { value: T; label: string }[];
+  menuOnPhone?: boolean;
 }) {
+  const phone = useMediaQuery(useTheme().breakpoints.down('sm'));
+  if (menuOnPhone && phone) return <TabsMenu value={value} onChange={onChange} tabs={tabs} />;
   return (
     <MuiTabs
       value={value}
@@ -198,5 +209,50 @@ export function Tabs<T extends string>({
         <MuiTab key={t.value} value={t.value} label={t.label} />
       ))}
     </MuiTabs>
+  );
+}
+
+function TabsMenu<T extends string>({
+  value,
+  onChange,
+  tabs,
+}: {
+  value: T;
+  onChange(value: T): void;
+  tabs: readonly { value: T; label: string }[];
+}) {
+  const t = useT();
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const menuId = useId();
+  const label = t('shell.menu');
+
+  return (
+    <MuiStack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
+      <MuiIconButton
+        aria-label={label}
+        title={label}
+        aria-haspopup="menu"
+        aria-controls={anchor ? menuId : undefined}
+        aria-expanded={anchor ? 'true' : undefined}
+        onClick={(e) => setAnchor(e.currentTarget)}
+      >
+        <MenuIcon />
+      </MuiIconButton>
+      <MuiTypography variant="subtitle1">{tabs.find((tab) => tab.value === value)?.label}</MuiTypography>
+      <MuiMenu id={menuId} anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {tabs.map((tab) => (
+          <MuiMenuItem
+            key={tab.value}
+            selected={tab.value === value}
+            onClick={() => {
+              setAnchor(null);
+              if (tab.value !== value) onChange(tab.value);
+            }}
+          >
+            {tab.label}
+          </MuiMenuItem>
+        ))}
+      </MuiMenu>
+    </MuiStack>
   );
 }

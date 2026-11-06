@@ -3,7 +3,8 @@
     "switchToLight": "Switch to light theme",
     "switchToDark": "Switch to dark theme",
     "contact": "Contact",
-    "language": "Language"
+    "language": "Language",
+    "menu": "Menu"
   },
   "common": {
     "close": "Close",

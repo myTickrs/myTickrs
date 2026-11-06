@@ -503,7 +503,7 @@ export interface StockChartResponse {
     side: PositionSide | null;
     averagePrice: string | null;
     realized: StockPnlSplit;
-    unrealized: StockPnlSplit;
+    unrealized: StockPnlSplit & { percent: string | null };
     shortCosts: string;
     dayChange: { total: string; stock: string | null; option: string | null } | null;
   } | null;

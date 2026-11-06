@@ -165,6 +165,7 @@ export function SettingsPage({ extraTabs = [] }: { extraTabs?: readonly Settings
           setSearch(v === 'general' ? {} : { tab: v }, { replace: true });
         }}
         tabs={tabs}
+        menuOnPhone
       />
 
       {tab === 'general' && (

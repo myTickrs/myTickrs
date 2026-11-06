@@ -45,7 +45,7 @@ type TradeRow = StockChartResponse['markers'][number] & { key: string };
 export function StockDetailPage() {
   const t = useT();
   const { symbol = '' } = useParams();
-  const [range, setRange] = useState<Range>('1Y');
+  const [range, setRange] = useState<Range>('ALL');
   const chart = useStockChart(symbol, range);
   const accounts = useAccounts();
   const [message, setMessage] = useState<string | null>(null);
@@ -120,6 +120,13 @@ export function StockDetailPage() {
 
   const { currency, position, quote } = chart.data;
   const format = (v: number) => formatMoney(String(v), currency);
+  const withPercent = (amount: string | null | undefined, percent: string | null | undefined) =>
+    percent == null
+      ? formatSignedMoney(amount, currency)
+      : t('common.changeWithPercent', {
+          change: formatSignedMoney(amount, currency),
+          percent: formatPercent(percent),
+        });
 
   const tradeColumns: Column<TradeRow>[] = [
     {
@@ -248,11 +255,8 @@ export function StockDetailPage() {
                             {
                               label: t('stock.pnlStock'),
                               value:
-                                position.dayChange.stock != null && quote?.change != null
-                                  ? t('stock.dayChangeStock', {
-                                      amount: formatSignedMoney(position.dayChange.stock, currency),
-                                      change: formatSignedMoney(quote.change, currency),
-                                    })
+                                position.dayChange.stock != null
+                                  ? formatSignedMoney(position.dayChange.stock, currency)
                                   : t('stock.noPreviousClose'),
                               tone: toneOf(position.dayChange.stock),
                             },
@@ -282,7 +286,10 @@ export function StockDetailPage() {
             <StatTile
               key={key}
               label={label}
-              value={formatSignedMoney(position[key].total, currency)}
+              value={withPercent(
+                position[key].total,
+                key === 'unrealized' ? position.unrealized.percent : null,
+              )}
               tone={toneOf(position[key].total)}
               sub={(
                 [

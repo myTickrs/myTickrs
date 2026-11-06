@@ -29,10 +29,26 @@ export function DashboardPage() {
 
   const s = summary.data;
   const base = s.baseCurrency;
+  const h = holdings.data;
+  const isEmpty = h.stocks.length === 0 && h.options.length === 0 && h.closedStocks.length === 0;
 
   return (
     <Col gap={3}>
       <Text variant="title">{t('dashboard.title')}</Text>
+
+      {isEmpty && (
+        <Banner
+          tone="info"
+          title={t('dashboard.emptyPortfolioTitle')}
+          action={
+            <Button variant="text" onClick={() => void navigate('/import')}>
+              {t('dashboard.emptyPortfolioAction')}
+            </Button>
+          }
+        >
+          {t('dashboard.emptyPortfolioText')}
+        </Banner>
+      )}
 
       {s.counts.accounts === 0 && (
         <Banner

@@ -2,6 +2,37 @@
 
 All notable changes to the myTickrs desktop edition are listed here.
 
+## 0.1.41 — 2026-11-06
+
+### Added
+
+- **Unrealized P&L percent on the stock page.** The **Unrealized** tile now shows the percent next to the
+  amount. The percent is measured against the cost of the open shares and options (the premium received, for a
+  short), the same way the Holdings card does it.
+- **Getting started on an empty dashboard.** When you have no holdings and have never closed a position, the
+  dashboard shows a notice with an **Import** button. It takes you to the Import page, where you can bring in
+  your holdings from a screenshot of your broker's positions or from a CSV, JSON or XML file.
+- **Menu for tabs on phones.** On narrow screens, the tabs in the header collapse into a **Menu** button.
+
+### Changed
+
+- The Holdings card now sorts by symbol (A→Z) by default. When grouped by account, each account's table uses
+  the same sort.
+- The stock page chart now opens on the **ALL** range instead of **1Y**.
+- The stock line of the **Day change** tile now shows only the amount, without the per-share change.
+- Translations for the new labels were updated in all supported languages (de, en, es, fr, it, ja, ko, zh-CN,
+  zh-TW).
+
+### Fixed
+
+- **Malformed request paths.** A request whose path isn't valid percent-encoding (such as `/%c0`) now gets a
+  `400 Bad Request` response instead of a `500` with an error in the log.
+
+### API
+
+- Stock chart `position.unrealized` has a new `percent` field: the unrealized total as a fraction of the open
+  positions' cost, or `null` when that cost is zero.
+
 ## 0.1.38 — 2026-10-23
 
 ### Added

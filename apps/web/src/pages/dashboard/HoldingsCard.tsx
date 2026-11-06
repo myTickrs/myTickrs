@@ -249,7 +249,7 @@ export function HoldingsCard({ baseCurrency }: { baseCurrency: string }) {
   const showAccounts = groupBy === 'account';
   const byAccount = useHoldingsByAccount(showAccounts);
   const holdings = useHoldings();
-  const [sort, setSort] = useState<HoldingSort>();
+  const [sort, setSort] = useState<HoldingSort>({ key: 'symbol', direction: 'asc' });
   const changeSort = (key: string) => {
     if (SORT_KEYS.includes(key)) setSort((s) => nextSort(s, key as SortKey));
   };

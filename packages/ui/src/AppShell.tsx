@@ -1,6 +1,7 @@
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import MenuIcon from '@mui/icons-material/Menu';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SettingsIcon from '@mui/icons-material/Settings';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -9,13 +10,20 @@ import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 import MuiAppBar from '@mui/material/AppBar';
 import MuiBox from '@mui/material/Box';
 import MuiContainer from '@mui/material/Container';
+import MuiIconButton from '@mui/material/IconButton';
 import MuiLink from '@mui/material/Link';
+import MuiListItemIcon from '@mui/material/ListItemIcon';
+import MuiListItemText from '@mui/material/ListItemText';
+import MuiMenu from '@mui/material/Menu';
+import MuiMenuItem from '@mui/material/MenuItem';
 import MuiStack from '@mui/material/Stack';
 import MuiTab from '@mui/material/Tab';
 import MuiTabs from '@mui/material/Tabs';
 import MuiToolbar from '@mui/material/Toolbar';
 import MuiTypography from '@mui/material/Typography';
-import { useState, type ElementType, type ReactNode } from 'react';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useId, useState, type ElementType, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { LanguageMenu } from './LanguageMenu.js';
 import { Logo } from './Logo.js';
@@ -37,6 +45,49 @@ export interface NavItem {
   to: string;
   label: string;
   icon?: NavIcon;
+}
+
+function NavMenu({ nav, current }: { nav: readonly NavItem[]; current: string | false }) {
+  const t = useT();
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const menuId = useId();
+  const label = t('shell.menu');
+
+  return (
+    <>
+      <MuiIconButton
+        aria-label={label}
+        title={label}
+        aria-haspopup="menu"
+        aria-controls={anchor ? menuId : undefined}
+        aria-expanded={anchor ? 'true' : undefined}
+        onClick={(e) => setAnchor(e.currentTarget)}
+      >
+        <MenuIcon />
+      </MuiIconButton>
+      <MuiMenu id={menuId} anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {nav.map((n) => {
+          const Icon = n.icon ? NAV_ICONS[n.icon] : null;
+          return (
+            <MuiMenuItem
+              key={n.to}
+              component={Link as ElementType}
+              to={n.to}
+              selected={n.to === current}
+              onClick={() => setAnchor(null)}
+            >
+              {Icon && (
+                <MuiListItemIcon>
+                  <Icon fontSize="small" />
+                </MuiListItemIcon>
+              )}
+              <MuiListItemText>{n.label}</MuiListItemText>
+            </MuiMenuItem>
+          );
+        })}
+      </MuiMenu>
+    </>
+  );
 }
 
 const CONTACT_EMAIL = 'admin@mytickrs.com';
@@ -67,11 +118,13 @@ export function Footer({ version }: { version?: string } = {}) {
 export function AppShell({
   children,
   actions,
+  end,
   nav,
   version,
 }: {
   children: ReactNode;
   actions?: ReactNode;
+  end?: ReactNode;
   nav: readonly NavItem[];
   version?: string;
 }) {
@@ -80,6 +133,7 @@ export function AppShell({
   const t = useT();
   const match = nav.find((n) => (n.to === '/' ? pathname === '/' : pathname.startsWith(n.to)));
   const current = match?.to ?? false;
+  const phone = useMediaQuery(useTheme().breakpoints.down('sm'));
 
   return (
     <MuiBox sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -90,32 +144,37 @@ export function AppShell({
         sx={{ borderBottom: 1, borderColor: 'divider' }}
       >
         <MuiToolbar sx={{ gap: 2, flexWrap: 'wrap' }}>
+          {phone && <NavMenu nav={nav} current={current} />}
           <MuiStack direction="row" spacing={1} sx={{ alignItems: 'center', marginInlineEnd: 2 }}>
             <Logo />
             <MuiTypography variant="h6">myTickrs</MuiTypography>
           </MuiStack>
-          <MuiTabs
-            value={current}
-            sx={{ flexGrow: 1, minHeight: 48 }}
-            variant="scrollable"
-            allowScrollButtonsMobile
-          >
-            {nav.map((n) => {
-              const Icon = n.icon ? NAV_ICONS[n.icon] : null;
-              return (
-                <MuiTab
-                  key={n.to}
-                  value={n.to}
-                  label={n.label}
-                  icon={Icon ? <Icon fontSize="small" /> : undefined}
-                  iconPosition="start"
-                  component={Link as ElementType}
-                  to={n.to}
-                  sx={{ minHeight: 48 }}
-                />
-              );
-            })}
-          </MuiTabs>
+          {phone ? (
+            <MuiBox sx={{ flexGrow: 1 }} />
+          ) : (
+            <MuiTabs
+              value={current}
+              sx={{ flexGrow: 1, minHeight: 48 }}
+              variant="scrollable"
+              allowScrollButtonsMobile
+            >
+              {nav.map((n) => {
+                const Icon = n.icon ? NAV_ICONS[n.icon] : null;
+                return (
+                  <MuiTab
+                    key={n.to}
+                    value={n.to}
+                    label={n.label}
+                    icon={Icon ? <Icon fontSize="small" /> : undefined}
+                    iconPosition="start"
+                    component={Link as ElementType}
+                    to={n.to}
+                    sx={{ minHeight: 48 }}
+                  />
+                );
+              })}
+            </MuiTabs>
+          )}
           <MuiStack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             {actions}
             <LanguageMenu />
@@ -125,6 +184,7 @@ export function AppShell({
             >
               {resolved === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
+            {end}
           </MuiStack>
         </MuiToolbar>
       </MuiAppBar>

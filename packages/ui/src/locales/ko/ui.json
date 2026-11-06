@@ -3,7 +3,8 @@
     "switchToLight": "라이트 테마로 전환",
     "switchToDark": "다크 테마로 전환",
     "contact": "문의",
-    "language": "언어"
+    "language": "언어",
+    "menu": "메뉴"
   },
   "common": {
     "close": "닫기",

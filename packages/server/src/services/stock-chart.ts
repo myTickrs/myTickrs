@@ -23,6 +23,8 @@ const STOCK_MARKER_KIND: Partial<Record<string, 'BUY' | 'SELL'>> = {
 
 const sum = (amounts: (string | Dec)[]) => amounts.reduce<Dec>((acc, a) => acc.plus(a), dec('0'));
 
+const fraction = (amount: Dec, base: Dec) => (base.isZero() ? null : amount.div(base).toFixed());
+
 const split = (stock: Dec, option: Dec): StockPnlSplit => ({
   total: stock.plus(option).toFixed(),
   stock: stock.toFixed(),
@@ -102,17 +104,28 @@ export async function getStockChart(
   const averagePrice = position && !shares.isZero() ? position.netInvested.div(signedShares) : null;
 
   const optionPositions = [...ledger.options.values()].filter((p) => p.underlying === upper);
+  const openStocks = valuation.stocks.filter((s) => s.symbol === upper);
+  const openOptions = valuation.options.filter((o) => o.underlying === upper);
   const realized = split(
     position ? position.realized.plus(position.dividends) : dec('0'),
     sum(optionPositions.map((p) => p.realized)),
   );
-  const unrealized = split(
-    sum(valuation.stocks.filter((s) => s.symbol === upper).map((s) => s.unrealized)),
-    sum(valuation.options.filter((o) => o.underlying === upper).map((o) => o.unrealized)),
+  const unrealizedSplit = split(
+    sum(openStocks.map((s) => s.unrealized)),
+    sum(openOptions.map((o) => o.unrealized)),
   );
+  const unrealized = {
+    ...unrealizedSplit,
+    percent: fraction(
+      dec(unrealizedSplit.total),
+      sum([
+        ...openStocks.map((s) => dec(s.costBasis).abs()),
+        ...openOptions.map((o) => dec(o.openAmount).abs()),
+      ]),
+    ),
+  };
 
   const stockDayChange = quote?.change != null && !shares.isZero() ? signedShares.times(quote.change) : null;
-  const openOptions = valuation.options.filter((o) => o.underlying === upper);
   const optionMoves = positionDayChanges(valuation, previous!);
   const optionDayChange =
     openOptions.length > 0

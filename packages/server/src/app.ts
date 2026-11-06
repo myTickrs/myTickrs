@@ -127,6 +127,9 @@ function errorHandler(logger: Logger): ErrorRequestHandler {
     } else if (isBodyParserError(err)) {
       status = err.status;
       body = { error: { code: 'BAD_REQUEST', message: 'Malformed or oversized request body' } };
+    } else if (isUndecodablePath(err)) {
+      status = 400;
+      body = { error: { code: 'BAD_REQUEST', message: 'Malformed request path' } };
     } else {
       const correlationId = String(req.id ?? '');
       logger.error({ err, correlationId }, 'Unhandled error');
@@ -134,6 +137,10 @@ function errorHandler(logger: Logger): ErrorRequestHandler {
     }
     res.status(status).json(body);
   };
+}
+
+function isUndecodablePath(err: unknown): boolean {
+  return err instanceof URIError && (err as URIError & { status?: unknown }).status === 400;
 }
 
 function isBodyParserError(err: unknown): err is { status: number; type: string } {
